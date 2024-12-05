@@ -32,7 +32,7 @@ def marks():
         print(f' You have guessed right: {count}')
 
         if count == 3:
-            total_weight = 3 * weight  # Should be 713 kg
+            total_weight = 3 * weight
             print(f'Good Job! The weight is: {weight*3} kg!')
             break
         else:
