@@ -1,14 +1,12 @@
 def marks():
-    weight = 713 / 3  # Approximately 237.67 kg per box
+    weight = 713 / 3
     while True:
         import random
-        # Generate 3 unique random kilometer marks
         mark = random.sample(range(1, 8), 3)
         print("Box Locations (in kilometers):", mark)
         print('Please enter integer values between 1 and 7.')
 
         try:
-            # Prompt the user with descriptive messages
             a = int(input("Enter the kilometer mark for Box 1: "))
             b = int(input("Enter the kilometer mark for Box 2: "))
             c = int(input("Enter the kilometer mark for Box 3: "))
