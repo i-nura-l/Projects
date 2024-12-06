@@ -125,5 +125,5 @@ def play_game():
             for idx, (name, score) in enumerate(leaderboard_sorted, start=1):
                 print(f"{idx}. {name} - {score} shots")
             break
-if __name__ == "__main__":
-    play_game()
+
+play_game()
