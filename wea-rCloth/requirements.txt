@@ -1,4 +1,5 @@
 streamlit
+pyairtable
 pandas
 matplotlib
 seaborn
