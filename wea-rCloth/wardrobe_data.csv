@@ -1,0 +1,81 @@
+Model,Category,Type,Style,Color,Season
+U0101ctW,Upper body,01-Shirt,Casual+Trendy,White,Winter
+U0102cS,Upper body,01-Shirt,Casual,Blue,Summer
+U0103fU,Upper body,01-Shirt,Formal,Black,Universal
+U0104fuU,Upper body,01-Shirt,Formal+Universal,White,Universal
+U0105tS,Upper body,01-Shirt,Trendy,Red,Summer
+U0106fA,Upper body,01-Shirt,Formal,Navy,Autumn
+U0107cuW,Upper body,01-Shirt,Casual+Universal,Gray,Winter
+U0108uU,Upper body,01-Shirt,Universal,Beige,Universal
+U0109ctS,Upper body,01-Shirt,Casual+Trendy,Green,Summer
+U0110fuA,Upper body,01-Shirt,Formal+Universal,Brown,Autumn
+U0201cS,Upper body,02-TShirt,Casual,White,Summer
+U0202cS,Upper body,02-TShirt,Casual,Black,Summer
+U0203ftS,Upper body,02-TShirt,Formal+Trendy,Blue,Summer
+U0204tS,Upper body,02-TShirt,Trendy,Red,Summer
+U0205cS,Upper body,02-TShirt,Casual,Green,Summer
+U0206uU,Upper body,02-TShirt,Universal,Gray,Universal
+U0207cS,Upper body,02-TShirt,Casual,Yellow,Summer
+U0208tS,Upper body,02-TShirt,Trendy,Purple,Summer
+U0209cuS,Upper body,02-TShirt,Casual+Universal,Navy,Summer
+U0210fuS,Upper body,02-TShirt,Formal+Universal,Burgundy,Summer
+U0301cW,Upper body,03-Sweater,Casual,Gray,Winter
+U0302fW,Upper body,03-Sweater,Formal,Navy,Winter
+U0303tW,Upper body,03-Sweater,Trendy,Red,Winter
+U0304cA,Upper body,03-Sweater,Casual,Green,Autumn
+U0305fA,Upper body,03-Sweater,Formal,Black,Autumn
+U0306tuW,Upper body,03-Sweater,Trendy+Universal,Beige,Winter
+U0307uU,Upper body,03-Sweater,Universal,Brown,Universal
+U0308cfW,Upper body,03-Sweater,Casual+Formal,Burgundy,Winter
+U0309tA,Upper body,03-Sweater,Trendy,Orange,Autumn
+U0310cuW,Upper body,03-Sweater,Casual+Universal,White,Winter
+L2001uV,Lower body,20-Jeans,Universal,Blue,Vernal
+L2002cfU,Lower body,20-Jeans,Casual+Formal,Black,Universal
+L2003cU,Lower body,20-Jeans,Casual,Distressed,Universal
+L2004fU,Lower body,20-Jeans,Formal,Dark Blue,Universal
+L2005tS,Lower body,20-Jeans,Trendy,Light Blue,Summer
+L2006tuV,Lower body,20-Jeans,Trendy+Universal,White,Vernal
+L2007cU,Lower body,20-Jeans,Casual,Gray,Universal
+L2008fuU,Lower body,20-Jeans,Formal+Universal,Navy,Universal
+L2009tS,Lower body,20-Jeans,Trendy,Ripped Black,Summer
+L2010cuU,Lower body,20-Jeans,Casual+Universal,Stonewash,Universal
+L2101cU,Lower body,21-Trousers,Casual,Khaki,Universal
+L2102fU,Lower body,21-Trousers,Formal,Black,Universal
+L2103fU,Lower body,21-Trousers,Formal,Navy,Universal
+L2104cS,Lower body,21-Trousers,Casual,Beige,Summer
+L2105tV,Lower body,21-Trousers,Trendy,Green,Vernal
+L2106fuU,Lower body,21-Trousers,Formal+Universal,Gray,Universal
+L2107tS,Lower body,21-Trousers,Trendy,White,Summer
+L2108cuA,Lower body,21-Trousers,Casual+Universal,Brown,Autumn
+L2109fuW,Lower body,21-Trousers,Formal+Universal,Charcoal,Winter
+L2110cfA,Lower body,21-Trousers,Casual+Formal,Olive,Autumn
+F3001cU,Footwear,30-Sneakers,Casual,White,Universal
+F3002cU,Footwear,30-Sneakers,Casual,Black,Universal
+F3003tU,Footwear,30-Sneakers,Trendy,Red,Universal
+F3004tuU,Footwear,30-Sneakers,Trendy+Universal,Blue,Universal
+F3005cS,Footwear,30-Sneakers,Casual,Green,Summer
+F3006uU,Footwear,30-Sneakers,Universal,Gray,Universal
+F3007tU,Footwear,30-Sneakers,Trendy,Multicolor,Universal
+F3008cuU,Footwear,30-Sneakers,Casual+Universal,Navy,Universal
+F3009tS,Footwear,30-Sneakers,Trendy,Yellow,Summer
+F3010cuU,Footwear,30-Sneakers,Casual+Universal,Brown,Universal
+F3101fU,Footwear,31-Formal,Formal,Black,Universal
+F3102fU,Footwear,31-Formal,Formal,Brown,Universal
+F3103fuU,Footwear,31-Formal,Formal+Universal,Burgundy,Universal
+F3104fU,Footwear,31-Formal,Formal,Navy,Universal
+F3105fuU,Footwear,31-Formal,Formal+Universal,Tan,Universal
+F3106fU,Footwear,31-Formal,Formal,Oxblood,Universal
+F3107tfU,Footwear,31-Formal,Trendy+Formal,Gray,Universal
+F3108fU,Footwear,31-Formal,Formal,White,Universal
+F3109tfU,Footwear,31-Formal,Trendy+Formal,Two-tone,Universal
+F3110fuU,Footwear,31-Formal,Formal+Universal,Dark Brown,Universal
+F3201cW,Footwear,32-Boots,Casual,Brown,Winter
+F3202cfW,Footwear,32-Boots,Casual+Formal,Black,Winter
+F3203tA,Footwear,32-Boots,Trendy,Tan,Autumn
+F3204cAW,Footwear,32-Boots,Casual,Dark Brown,Autumn+Winter
+F3205tuA,Footwear,32-Boots,Trendy+Universal,Burgundy,Autumn
+F3206fW,Footwear,32-Boots,Formal,Black,Winter
+F3207cuAW,Footwear,32-Boots,Casual+Universal,Gray,Autumn+Winter
+F3208tA,Footwear,32-Boots,Trendy,Distressed,Autumn
+F3209cfA,Footwear,32-Boots,Casual+Formal,Chestnut,Autumn
+F3210uAW,Footwear,32-Boots,Universal,Navy,Autumn+Winter
