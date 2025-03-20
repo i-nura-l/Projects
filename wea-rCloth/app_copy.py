@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from airtable  import airtable
 import random
 import os
 
@@ -13,24 +14,49 @@ if 'current_combination' not in st.session_state:
     st.session_state.current_combination = None
 
 
-# Functions for file operations
+# # Functions for file operations
+# def load_data():
+#     try:
+#         wardrobe_df = pd.read_csv('wardrobe_data.csv')
+#         combinations_df = pd.read_csv('combinations_data.csv')
+#     except FileNotFoundError:
+#         wardrobe_df = pd.DataFrame(columns=[
+#             'Model', 'Category', 'Type', 'TypeNumber', 'Style', 'Color', 'Season'
+#         ])
+#         combinations_df = pd.DataFrame(columns=[
+#             'CombinationID', 'UpperBody', 'LowerBody', 'Footwear', 'Season', 'Style', 'Rating'
+#         ])
+#     return wardrobe_df, combinations_df
+#
+#
+# def save_data(wardrobe_df, combinations_df):
+#     wardrobe_df.to_csv('wardrobe_data.csv', index=False)
+#     combinations_df.to_csv('combinations_data.csv', index=False)
+
+
+# Initialize Airtable tables
+wardrobe_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'wardrobe_data')
+combinations_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'combinations_data')
+
+
 def load_data():
-    try:
-        wardrobe_df = pd.read_csv('wardrobe_data.csv')
-        combinations_df = pd.read_csv('combinations_data.csv')
-    except FileNotFoundError:
-        wardrobe_df = pd.DataFrame(columns=[
-            'Model', 'Category', 'Type', 'TypeNumber', 'Style', 'Color', 'Season'
-        ])
-        combinations_df = pd.DataFrame(columns=[
-            'CombinationID', 'UpperBody', 'LowerBody', 'Footwear', 'Season', 'Style', 'Rating'
-        ])
+    """Fetch data from Airtable instead of local CSVs."""
+    wardrobe_records = wardrobe_table.all()
+    combinations_records = combinations_table.all()
+
+    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records]) if wardrobe_records else pd.DataFrame()
+    combinations_df = pd.DataFrame(
+        [rec['fields'] for rec in combinations_records]) if combinations_records else pd.DataFrame()
+
     return wardrobe_df, combinations_df
 
 
 def save_data(wardrobe_df, combinations_df):
-    wardrobe_df.to_csv('wardrobe_data.csv', index=False)
-    combinations_df.to_csv('combinations_data.csv', index=False)
+    """Save data to Airtable instead of CSV files."""
+    for _, row in wardrobe_df.iterrows():
+        wardrobe_table.create(row.to_dict())
+    for _, row in combinations_df.iterrows():
+        combinations_table.create(row.to_dict())
 
 
 # Load data
