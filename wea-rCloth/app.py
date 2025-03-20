@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pyairtable
-import Table
+from airtable  import airtable
 import random
 import os
 
@@ -35,15 +34,9 @@ if 'current_combination' not in st.session_state:
 #     combinations_df.to_csv('combinations_data.csv', index=False)
 
 
-# Airtable API credentials
-AIRTABLE_API_KEY = "patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea"
-BASE_ID = "appdgbGbEz1Dtynvg."
-TABLE_WARDROBE = "wardrobe_data"
-TABLE_COMBINATIONS = "combinations_data"
-
 # Initialize Airtable tables
-wardrobe_table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_WARDROBE)
-combinations_table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_COMBINATIONS)
+wardrobe_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'wardrobe_data')
+combinations_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'combinations_data')
 
 
 def load_data():
