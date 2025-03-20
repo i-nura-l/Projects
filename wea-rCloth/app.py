@@ -1,10 +1,3 @@
-import streamlit as st
-import pandas as pd
-import matplotlib as plt
-import seaborn as sns
-import random
-import os
-
 # Set page config
 st.set_page_config(page_title="wea-rCloth", layout="wide")
 
