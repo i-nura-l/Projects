@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from airtable  import airtable
+from pyairtable import Table
 import random
 import os
 
@@ -35,9 +35,8 @@ if 'current_combination' not in st.session_state:
 
 
 # Initialize Airtable tables
-wardrobe_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'wardrobe_data')
-combinations_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'combinations_data')
-
+wardrobe_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', 'appdgbGbEz1Dtynvg', 'wardrobe_data')
+combinations_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', 'appdgbGbEz1Dtynvg', 'combinations_data')
 
 def load_data():
     """Fetch data from Airtable instead of local CSVs."""
@@ -50,13 +49,17 @@ def load_data():
 
     return wardrobe_df, combinations_df
 
-
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
     for _, row in wardrobe_df.iterrows():
-        wardrobe_table.create(row.to_dict())
+        # Convert row to dict and remove any NaN values
+        row_dict = {k: v for k, v in row.to_dict().items() if pd.notna(v)}
+        wardrobe_table.create(row_dict)
+    
     for _, row in combinations_df.iterrows():
-        combinations_table.create(row.to_dict())
+        # Convert row to dict and remove any NaN values
+        row_dict = {k: v for k, v in row.to_dict().items() if pd.notna(v)}
+        combinations_table.create(row_dict)
 
 
 # Load data
