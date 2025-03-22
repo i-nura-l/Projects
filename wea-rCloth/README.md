@@ -1,12 +1,13 @@
-Wea-rCloth – Smart Wardrobe Assistant
+## Wea-rCloth – Smart Wardrobe Assistant
 
 A lightweight fashion app for generating smart outfit combinations based on weather, season, and user preferences.
-👥 Team Members and Responsibilities
+
+### 👥 Team Members and Responsibilities
 
     Nurali Bakytbek uulu – Project Management and Programming
     Aijan Tilekova – Data Collection
 
-🎯 Objectives
+### 🎯 Objectives
 
     Organize a digital wardrobe with categorized clothing data.
     Generate and rate season- and style-compatible outfit combinations.
@@ -14,7 +15,7 @@ A lightweight fashion app for generating smart outfit combinations based on weat
     Improve outfit suggestions based on user feedback and ratings.
     Prepare for machine learning integration to offer personalized recommendations.
 
-🛠️ Methodology
+### 🛠️ Methodology
 1. Data Collection & Storage
 
     Store wardrobe items & combinations in CSV, with potential SQL/Airtable migration.
@@ -38,7 +39,7 @@ A lightweight fashion app for generating smart outfit combinations based on weat
     Generate outfits and collect feedback dynamically.
     Display wardrobe insights interactively.
 
-✨ Novelty of Work in Kyrgyzstan
+### ✨ Novelty of Work in Kyrgyzstan
 
 Wea-rCloth is the first structured digital wardrobe assistant developed in Kyrgyzstan. It combines weather-conscious outfit planning with local style preferences, unlike any existing solution. It allows user ratings, tracks wardrobe data, and is tailored to local seasonal trends, setting it apart from generic fashion apps.
 📊 Results & Discussion
@@ -48,7 +49,7 @@ Wea-rCloth is the first structured digital wardrobe assistant developed in Kyrgy
     Data visualization enables clear insights into wardrobe trends.
     Current limitations include lack of AI-based personalization and real-time cloud syncing—both identified as next priorities.
 
-📈 Future Plans
+### 📈 Future Plans
 
     Live Weather Integration – Use weather APIs for real-time outfit suggestions.
     Cloud Syncing – Move from CSV to Airtable, Firebase, or SQL for better scalability.
@@ -58,9 +59,9 @@ Wea-rCloth is the first structured digital wardrobe assistant developed in Kyrgy
     Outfit Calendar & Notifications – Help users plan ahead and get daily suggestions.
     Sustainability Tracker – Identify rarely worn items and suggest decluttering.
 
-⏱ Real-Time Applicability
+### ⏱ Real-Time Applicability
 
 Wea-rCloth is ready for daily real-time use. Users can instantly add clothing, generate new outfit ideas, and analyze usage patterns with minimal delay. With planned enhancements like weather APIs and mobile access, its real-time utility will only grow.
-✅ Conclusion
+### ✅ Conclusion
 
 Wea-rCloth offers a practical and innovative solution for smart wardrobe management tailored to Kyrgyz users. It successfully digitizes clothing organization, generates compatible outfits, and enables data-backed decision-making through visualization. With a scalable codebase and clear user benefits, the app stands as a forward-thinking tool with strong potential for AI integration, mobile expansion, and community-driven fashion intelligence.
