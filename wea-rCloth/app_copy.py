@@ -120,8 +120,13 @@ if page == "Main":
         st.subheader("Add New Clothing Item")
 
         # Form for adding new clothing
+        # Form for adding new clothing
         with st.form("new_cloth_form"):
-            category = st.selectbox("Category", ["Upper body", "Lower body", "Footwear"])
+            # Initialize session state for category if not exists
+            if 'previous_category' not in st.session_state:
+                st.session_state.previous_category = "Upper body"
+
+            category = st.selectbox("Category", ["Upper body", "Lower body", "Footwear"], key="category_select")
 
             # Type selection based on category
             type_options = {
@@ -129,16 +134,28 @@ if page == "Main":
                 "Lower body": ["20-Jeans", "21-Trousers", "22-Shorts", "23-Skirt"],
                 "Footwear": ["30-Sneakers", "31-Formal", "32-Boots", "33-Sandals"]
             }
-            cloth_type = st.selectbox("Type", type_options[category])
 
-            # Get the number of items of this type (for model ID generation)
-            existing_items = wardrobe_df[(wardrobe_df['Category'] == category) &
-                                         (wardrobe_df['Type'] == cloth_type)]
-            next_number = len(existing_items) + 1
+            # Check if category has changed
+            if 'previous_category' in st.session_state and st.session_state.previous_category != category:
+                # If category changed, reset the type selection by using a new key
+                st.session_state.type_key = f"type_select_{category}_{random.randint(0, 1000)}"
+                st.session_state.previous_category = category
+            elif 'type_key' not in st.session_state:
+                # Initialize the type key if it doesn't exist
+                st.session_state.type_key = "type_select_initial"
 
+            # Use the dynamic key for the type selectbox
+            cloth_type = st.selectbox("Type", type_options[category], key=st.session_state.type_key)
+
+            # Rest of your form code remains the same
             style = st.selectbox("Style", ["Casual", "Formal", "Trendy", "Universal"])
             color = st.text_input("Color")
             season = st.selectbox("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"])
+
+            # Get the number of items of this type
+            existing_items = wardrobe_df[(wardrobe_df['Category'] == category) &
+                                         (wardrobe_df['Type'] == cloth_type)]
+            next_number = len(existing_items) + 1
 
             # Auto-generate model name
             style_code = ''.join([s[0] for s in style.split()])
@@ -155,7 +172,7 @@ if page == "Main":
                 new_item = {
                     'Model': model,
                     'Category': category,
-                    'Type': cloth_type,  # No TypeNumber field
+                    'Type': cloth_type,
                     'Style': style,
                     'Color': color,
                     'Season': season
