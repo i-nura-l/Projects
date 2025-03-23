@@ -21,15 +21,19 @@ if 'custom_types' not in st.session_state:
                        "11-Turtleneck", "12-TankTop", "13-Sweatshirt", "14-Blazer",
                        "15-CropTop", "16-Tunic", "17-Bodysuit", "18-Flannel", "19-Windbreaker"],
         "Lower body": [
-                "01-Jeans", "02-Trousers", "03-Shorts", "04-Skirt",
-                "05-Sweatpants", "06-Leggings", "07-CargoPants", "08-Chinos",
-                "09-CutOffs", "10-WideLeg"
+            "01-Jeans", "02-Trousers", "03-Shorts", "04-Skirt",
+            "05-Sweatpants", "06-Leggings", "07-CargoPants", "08-Chinos",
+            "09-CutOffs", "10-WideLeg"
         ],
         "Footwear": [
             "01-Sneakers", "02-Formal", "03-Boots", "04-Sandals",
             "05-Loafers", "06-Moccasins", "07-Espadrilles", "08-SlipOns",
             "09-HikingBoots", "10-RunningShoes"]
     }
+if 'form_category' not in st.session_state:
+    st.session_state.form_category = "Upper body"
+if 'type_options' not in st.session_state:
+    st.session_state.type_options = st.session_state.custom_types["Upper body"]
 
 # Initialize Airtable tables
 wardrobe_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea',
@@ -114,6 +118,17 @@ def save_data(wardrobe_df, combinations_df):
             st.error(f"Data being sent: {row_dict}")
 
 
+# Function to update type options based on selected category
+def update_type_options():
+    category = st.session_state.category_select
+    st.session_state.form_category = category
+    # Update the type options based on the selected category
+    if category in st.session_state.custom_types:
+        st.session_state.type_options = st.session_state.custom_types[category]
+    else:
+        st.session_state.type_options = []
+
+
 # Load data
 wardrobe_df, combinations_df = load_data()
 
@@ -130,35 +145,17 @@ if page == "Main":
     with col1:
         st.subheader("Add New Clothing Item")
 
-
-        # Define a callback function to update type options when category changes
-        def update_type_options():
-            category = st.session_state.category_select
-            # Update the type options based on the selected category
-            if category in st.session_state.custom_types:
-                st.session_state.type_options = st.session_state.custom_types[category]
-            else:
-                st.session_state.type_options = []
-
+        # Category selection outside the form
+        category = st.selectbox(
+            "Category",
+            ["Upper body", "Lower body", "Footwear"],
+            key="category_select",
+            on_change=update_type_options
+        )
 
         # Form for adding new clothing
         with st.form("new_cloth_form"):
-            # Select category with a callback
-            category = st.selectbox(
-                "Category",
-                ["Upper body", "Lower body", "Footwear"],
-                key="category_select",
-                on_change=update_type_options
-            )
-
-            # Initialize type_options in session state if not exists
-            if 'type_options' not in st.session_state:
-                if category in st.session_state.custom_types:
-                    st.session_state.type_options = st.session_state.custom_types[category]
-                else:
-                    st.session_state.type_options = []
-
-            # Type selection based on the current category's options
+            # Use the stored category value inside the form
             cloth_type = st.selectbox("Type", st.session_state.type_options)
 
             style = st.selectbox("Style", ["Casual", "Formal", "Trendy", "Universal"])
@@ -166,14 +163,14 @@ if page == "Main":
             season = st.selectbox("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"])
 
             # Get the number of items of this type
-            existing_items = wardrobe_df[(wardrobe_df['Category'] == category) &
+            existing_items = wardrobe_df[(wardrobe_df['Category'] == st.session_state.form_category) &
                                          (wardrobe_df['Type'] == cloth_type)]
             next_number = len(existing_items) + 1 if not existing_items.empty else 1
 
             # Auto-generate model name
             style_code = ''.join([s[0] for s in style.split()])
             season_code = ''.join([s[0] for s in season.split()])
-            category_code = category.split()[0][0]
+            category_code = st.session_state.form_category.split()[0][0]
             type_prefix = cloth_type.split("-")[0] if "-" in cloth_type else "00"
             model = f"{category_code}{type_prefix}{next_number:02d}{style_code.lower()}{season_code}"
 
@@ -184,7 +181,7 @@ if page == "Main":
             if submitted:
                 new_item = {
                     'Model': model,
-                    'Category': category,
+                    'Category': st.session_state.form_category,
                     'Type': cloth_type,
                     'Style': style,
                     'Color': color,
@@ -293,82 +290,6 @@ if page == "Main":
 
                     st.session_state.new_combination = new_combination
                     save_data(wardrobe_df, combinations_df)
-
-elif page == "Types Manager":
-    st.title("Manage Clothing Types")
-
-    # Tabs for each category
-    tabs = st.tabs(["Upper body", "Lower body", "Footwear"])
-
-    for i, category in enumerate(["Upper body", "Lower body", "Footwear"]):
-        with tabs[i]:
-            st.subheader(f"Manage {category} Types")
-
-            # Display current types
-            if category in st.session_state.custom_types:
-                st.write("Current Types:")
-                for typ in st.session_state.custom_types[category]:
-                    st.write(f"- {typ}")
-            else:
-                st.write("No types defined for this category yet.")
-
-            # Add new type form
-            with st.form(f"add_type_form_{category}"):
-                st.subheader("Add New Type")
-                # Get the next type number based on existing types
-                if category in st.session_state.custom_types and st.session_state.custom_types[category]:
-                    # Extract existing prefixes
-                    prefixes = []
-                    for typ in st.session_state.custom_types[category]:
-                        if "-" in typ:
-                            prefix = typ.split("-")[0]
-                            if prefix.isdigit():
-                                prefixes.append(int(prefix))
-
-                    if prefixes:
-                        next_prefix = max(prefixes) + 1
-                    else:
-                        # Default prefixes based on category
-                        if category == "Upper body":
-                            next_prefix = 6  # After 05-Coat
-                        elif category == "Lower body":
-                            next_prefix = 24  # After 23-Skirt
-                        else:  # Footwear
-                            next_prefix = 34  # After 33-Sandals
-                else:
-                    # Default prefixes based on category
-                    if category == "Upper body":
-                        next_prefix = 1
-                    elif category == "Lower body":
-                        next_prefix = 20
-                    else:  # Footwear
-                        next_prefix = 30
-
-                # Form inputs
-                type_name = st.text_input("Type Name (e.g., Jacket, Hoodie, etc.)", key=f"type_name_{category}")
-                type_prefix = st.number_input("Type Prefix", min_value=1, max_value=99, value=next_prefix,
-                                              key=f"type_prefix_{category}")
-
-                submitted = st.form_submit_button("Add Type")
-
-                if submitted and type_name:
-                    # Format: "01-Shirt"
-                    new_type = f"{type_prefix:02d}-{type_name}"
-
-                    # Add to custom types
-                    if category in st.session_state.custom_types:
-                        if new_type not in st.session_state.custom_types[category]:
-                            st.session_state.custom_types[category].append(new_type)
-                            st.session_state.custom_types[category].sort()
-                            st.success(f"Added {new_type} to {category} types!")
-                        else:
-                            st.warning(f"{new_type} already exists!")
-                    else:
-                        st.session_state.custom_types[category] = [new_type]
-                        st.success(f"Added {new_type} to {category} types!")
-
-                    # Trigger a rerun to update the UI
-                    st.experimental_rerun()
 
 elif page == "Wardrobe":
     st.title("Your Wardrobe")
