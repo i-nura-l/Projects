@@ -20,12 +20,15 @@ if 'custom_types' not in st.session_state:
                        "06-Hoodie", "07-Polo", "08-Vest", "09-Cardigan", "10-Blouse",
                        "11-Turtleneck", "12-TankTop", "13-Sweatshirt", "14-Blazer",
                        "15-CropTop", "16-Tunic", "17-Bodysuit", "18-Flannel", "19-Windbreaker"],
-        "Lower body": ["20-Jeans", "21-Trousers", "22-Shorts", "23-Skirt",
-                       "24-Sweatpants", "25-Leggings", "26-CargoPants", "27-Chinos",
-                       "28-CutOffs", "29-WideLeg"],
-        "Footwear": ["30-Sneakers", "31-Formal", "32-Boots", "33-Sandals",
-                     "34-Loafers", "35-Moccasins", "36-Espadrilles", "37-SlipOns",
-                     "38-HikingBoots", "39-RunningShoes"]
+        "Lower body": [
+                "01-Jeans", "02-Trousers", "03-Shorts", "04-Skirt",
+                "05-Sweatpants", "06-Leggings", "07-CargoPants", "08-Chinos",
+                "09-CutOffs", "10-WideLeg"
+        ],
+        "Footwear": [
+            "01-Sneakers", "02-Formal", "03-Boots", "04-Sandals",
+            "05-Loafers", "06-Moccasins", "07-Espadrilles", "08-SlipOns",
+            "09-HikingBoots", "10-RunningShoes"]
     }
 if 'type_options' not in st.session_state:
     st.session_state.type_options = st.session_state.custom_types["Upper body"]
