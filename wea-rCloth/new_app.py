@@ -298,11 +298,12 @@ elif page == "Wardrobe":
     st.sidebar.subheader("Filter Options")
 
     # Safe access to columns
-    categories = wardrobe_df[
-        'Category'].unique().tolist() if not wardrobe_df.empty and 'Category' in wardrobe_df.columns else []
-    styles = wardrobe_df['Style'].unique().tolist() if not wardrobe_df.empty and 'Style' in wardrobe_df.columns else []
-    seasons = wardrobe_df[
-        'Season'].unique().tolist() if not wardrobe_df.empty and 'Season' in wardrobe_df.columns else []
+    categories = wardrobe_df['Category'].astype(
+        str).unique().tolist() if not wardrobe_df.empty and 'Category' in wardrobe_df.columns else []
+    styles = wardrobe_df['Style'].astype(
+        str).unique().tolist() if not wardrobe_df.empty and 'Style' in wardrobe_df.columns else []
+    seasons = wardrobe_df['Season'].astype(
+        str).unique().tolist() if not wardrobe_df.empty and 'Season' in wardrobe_df.columns else []
 
     filter_category = st.sidebar.multiselect("Category", categories)
     filter_style = st.sidebar.multiselect("Style", styles)
