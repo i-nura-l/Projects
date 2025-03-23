@@ -83,12 +83,12 @@ def save_data(wardrobe_df, combinations_df):
 
         # Convert list values to comma-separated strings for Airtable
         row_dict = {}
-        for k, v in new_item.items():
-            if k != 'TypeNumber' and pd.notna(v):  # Skip TypeNumber field
-                if isinstance(v, list):
-                    row_dict[k] = ", ".join(v)
-                else:
-                    row_dict[k] = v
+        # for k, v in new_item.items():
+        #     if k != 'TypeNumber' and pd.notna(v):  # Skip TypeNumber field
+        #         if isinstance(v, list):
+        #             row_dict[k] = ", ".join(v)
+        #         else:
+        #             row_dict[k] = v
 
         # Convert any numpy data types to Python native types
         for key, value in row_dict.items():
