@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from airtable  import airtable
+from pyairtable import Table
 import random
 import os
 
@@ -35,9 +35,8 @@ if 'current_combination' not in st.session_state:
 
 
 # Initialize Airtable tables
-wardrobe_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'wardrobe_data')
-combinations_table = airtable.Airtable(base_id = 'appdgbGbEz1Dtynvg', api_key = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', table_name = 'combinations_data')
-
+wardrobe_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', 'appdgbGbEz1Dtynvg', 'wardrobe_data')
+combinations_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', 'appdgbGbEz1Dtynvg', 'combinations_data')
 
 def load_data():
     """Fetch data from Airtable instead of local CSVs."""
@@ -108,7 +107,6 @@ if page == "Main":
 
             submitted = st.form_submit_button("Add to Wardrobe")
 
-            # In your form submit handler:
             if submitted:
                 new_item = {
                     'Model': model,
@@ -120,8 +118,8 @@ if page == "Main":
                     'Season': season
                 }
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
-                st.session_state.new_item = new_item  # Store the new item
                 save_data(wardrobe_df, combinations_df)
+                st.success(f"Added {model} to your wardrobe!")
 
     with col2:
         st.subheader("Generate Outfit Combination")
