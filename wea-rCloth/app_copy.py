@@ -52,20 +52,24 @@ def load_data():
 
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
-    # We only want to save the new item, not the entire dataframe
     if 'new_item' in st.session_state:
         new_item = st.session_state.new_item
-        # Remove any NaN values and ensure all values are of valid types for Airtable
-        row_dict = {k: v for k, v in new_item.items() if pd.notna(v)}
+
+        # Remove any fields that don't exist in Airtable
+        # Ensure field names match exactly what's in Airtable
+        row_dict = {}
+        for k, v in new_item.items():
+            if k != 'TypeNumber' and pd.notna(v):  # Skip TypeNumber field
+                row_dict[k] = v
+
         # Convert any numpy data types to Python native types
         for key, value in row_dict.items():
-            if hasattr(value, 'item'):  # Check if it's a numpy type
+            if hasattr(value, 'item'):
                 row_dict[key] = value.item()
 
         try:
             wardrobe_table.create(row_dict)
             st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
-            # Clear the new item from session state
             del st.session_state.new_item
         except Exception as e:
             st.error(f"Error saving to Airtable: {str(e)}")
@@ -73,11 +77,24 @@ def save_data(wardrobe_df, combinations_df):
 
     # Similar approach for combinations
     if 'new_combination' in st.session_state:
+        # Update field names to match your combinations_data.csv
         new_combination = st.session_state.new_combination
-        row_dict = {k: v for k, v in new_combination.items() if pd.notna(v)}
-        for key, value in row_dict.items():
-            if hasattr(value, 'item'):
-                row_dict[key] = value.item()
+
+        # Map field names to match Airtable schema for combinations
+        field_mapping = {
+            'CombinationID': 'Combination_ID',
+            'UpperBody': 'Upper_Body',
+            'LowerBody': 'Lower_Body',
+            'Season': 'Season_Match',
+            'Style': 'Style_Match'
+        }
+
+        row_dict = {}
+        for k, v in new_combination.items():
+            if pd.notna(v):
+                # Use the mapped field name if it exists, otherwise use the original
+                airtable_field_name = field_mapping.get(k, k)
+                row_dict[airtable_field_name] = v
 
         try:
             combinations_table.create(row_dict)
@@ -85,7 +102,6 @@ def save_data(wardrobe_df, combinations_df):
             del st.session_state.new_combination
         except Exception as e:
             st.error(f"Error saving to Airtable: {str(e)}")
-
 
 # Load data
 wardrobe_df, combinations_df = load_data()
@@ -109,18 +125,16 @@ if page == "Main":
 
             # Type selection based on category
             type_options = {
-                "Upper body": ["1-Shirt", "2-T-shirt", "3-Sweater", "4-Jacket", "5-Coat"],
-                "Lower body": ["1-Pants", "2-Jeans", "3-Shorts", "4-Skirt"],
-                "Footwear": ["1-Sneakers", "2-Boots", "3-Sandals", "4-Formal shoes"]
+                "Upper body": ["01-Shirt", "02-TShirt", "03-Sweater", "04-Jacket", "05-Coat"],
+                "Lower body": ["20-Jeans", "21-Trousers", "22-Shorts", "23-Skirt"],
+                "Footwear": ["30-Sneakers", "31-Formal", "32-Boots", "33-Sandals"]
             }
             cloth_type = st.selectbox("Type", type_options[category])
 
-            # Get the next type number
-            type_prefix = cloth_type.split("-")[0]
+            # Get the number of items of this type (for model ID generation)
             existing_items = wardrobe_df[(wardrobe_df['Category'] == category) &
                                          (wardrobe_df['Type'] == cloth_type)]
             next_number = len(existing_items) + 1
-            type_number = f"{next_number:02d}"
 
             style = st.selectbox("Style", ["Casual", "Formal", "Trendy", "Universal"])
             color = st.text_input("Color")
@@ -130,25 +144,24 @@ if page == "Main":
             style_code = ''.join([s[0] for s in style.split()])
             season_code = ''.join([s[0] for s in season.split()])
             category_code = category.split()[0][0]
-            model = f"{category_code}{type_prefix}{type_number}{style_code}{season_code}"
+            type_prefix = cloth_type.split("-")[0]
+            model = f"{category_code}{type_prefix}{next_number:02d}{style_code.lower()}{season_code}"
 
             st.write(f"Generated Model ID: {model}")
 
             submitted = st.form_submit_button("Add to Wardrobe")
 
-            # In your form submit handler:
             if submitted:
                 new_item = {
                     'Model': model,
                     'Category': category,
-                    'Type': cloth_type,
-                    'TypeNumber': type_number,
+                    'Type': cloth_type,  # No TypeNumber field
                     'Style': style,
                     'Color': color,
                     'Season': season
                 }
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
-                st.session_state.new_item = new_item  # Store the new item
+                st.session_state.new_item = new_item
                 save_data(wardrobe_df, combinations_df)
                 st.success(f"Added {model} to your wardrobe!")
 
@@ -194,12 +207,12 @@ if page == "Main":
 
                 # Store current combination in session state
                 st.session_state.current_combination = {
-                    'CombinationID': combination_id,
-                    'UpperBody': upper['Model'].values[0],
-                    'LowerBody': lower['Model'].values[0],
+                    'Combination_ID': combination_id,  # Note the underscore
+                    'Upper_Body': upper['Model'].values[0],  # Note the underscore
+                    'Lower_Body': lower['Model'].values[0],  # Note the underscore
                     'Footwear': footwear['Model'].values[0],
-                    'Season': combined_season,
-                    'Style': combined_style
+                    'Season_Match': combined_season,  # Note the underscore
+                    'Style_Match': combined_style  # Note the underscore
                 }
 
                 # Display the combination
@@ -218,11 +231,11 @@ if page == "Main":
 
                 if st.button("Save Rating"):
                     # Check if combination already exists
-                    exists = combination_id in combinations_df['CombinationID'].values
+                    exists = combination_id in combinations_df['Combination_ID'].values  # Note the underscore
 
                     if exists:
                         # Update existing combination
-                        combinations_df.loc[combinations_df['CombinationID'] == combination_id, 'Rating'] = rating
+                        combinations_df.loc[combinations_df['Combination_ID'] == combination_id, 'Rating'] = rating
                     else:
                         # Add new combination
                         new_combination = st.session_state.current_combination.copy()
@@ -230,8 +243,8 @@ if page == "Main":
                         combinations_df = pd.concat([combinations_df, pd.DataFrame([new_combination])],
                                                     ignore_index=True)
 
+                    st.session_state.new_combination = new_combination  # Store for saving to Airtable
                     save_data(wardrobe_df, combinations_df)
-                    st.success(f"Saved rating ({rating}/10) for this combination!")
             else:
                 st.error("You need at least one item in each category to generate a combination!")
 
