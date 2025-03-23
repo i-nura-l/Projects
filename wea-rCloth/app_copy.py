@@ -108,6 +108,7 @@ if page == "Main":
 
             submitted = st.form_submit_button("Add to Wardrobe")
 
+            # In your form submit handler:
             if submitted:
                 new_item = {
                     'Model': model,
@@ -119,8 +120,8 @@ if page == "Main":
                     'Season': season
                 }
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
+                st.session_state.new_item = new_item  # Store the new item
                 save_data(wardrobe_df, combinations_df)
-                st.success(f"Added {model} to your wardrobe!")
 
     with col2:
         st.subheader("Generate Outfit Combination")
