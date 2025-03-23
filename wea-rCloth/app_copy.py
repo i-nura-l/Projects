@@ -163,7 +163,6 @@ if page == "Main":
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
                 st.session_state.new_item = new_item
                 save_data(wardrobe_df, combinations_df)
-                st.success(f"Added {model} to your wardrobe!")
 
     with col2:
         st.subheader("Generate Outfit Combination")
