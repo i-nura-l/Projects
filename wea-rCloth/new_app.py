@@ -205,7 +205,6 @@ if page == "Main":
                 st.session_state.new_item = new_item
                 save_data(wardrobe_df, combinations_df)
 
-    # In the Main page section where you handle outfit generation
     with col2:
         st.subheader("Generate Outfit Combination")
 
@@ -225,164 +224,104 @@ if page == "Main":
                 default=["Universal"]
             )
 
-            # Option to try to match colors
-            color_harmony = st.checkbox("Attempt Color Harmony", value=True)
-
         if st.button("Generate New Combination"):
-            # Check if we have enough items
-            categories = ["Upper body", "Lower body", "Footwear"]
-
-            # Filter the wardrobe based on season and style if specified
-            filtered_wardrobe = wardrobe_df.copy()
-
-            if season_filter and 'Season' in filtered_wardrobe.columns:
-                # Filter items that match any of the selected seasons
-                season_mask = filtered_wardrobe['Season'].apply(
-                    lambda x: any(season in x for season in season_filter) if isinstance(x, str) else False
-                )
-                filtered_wardrobe = filtered_wardrobe[season_mask]
-
-            if style_filter and 'Style' in filtered_wardrobe.columns:
-                # Filter items that match any of the selected styles
-                style_mask = filtered_wardrobe['Style'].apply(
-                    lambda x: any(style in x for style in style_filter) if isinstance(x, str) else False
-                )
-                filtered_wardrobe = filtered_wardrobe[style_mask]
-
-            # Verify we have at least one item of each category after filtering
-            has_all_categories = all(
-                len(filtered_wardrobe[filtered_wardrobe['Category'] == cat]) > 0 for cat in categories)
-
-            if has_all_categories:
-                # Get one item from each category
-                upper = filtered_wardrobe[filtered_wardrobe['Category'] == 'Upper body'].sample(1)
-                lower = filtered_wardrobe[filtered_wardrobe['Category'] == 'Lower body'].sample(1)
-                footwear = filtered_wardrobe[filtered_wardrobe['Category'] == 'Footwear'].sample(1)
-
-                # If color harmony is enabled, try to select complementary colors
-                if color_harmony and 'Color' in filtered_wardrobe.columns:
-                    # First, select upper body item
-                    upper = filtered_wardrobe[filtered_wardrobe['Category'] == 'Upper body'].sample(1)
-
-                    # Then try to find lower body items with complementary colors
-                    if 'Color' in upper.columns and not pd.isna(upper['Color'].values[0]):
-                        upper_color = upper['Color'].values[0]
-
-                        # Get lower body options
-                        lower_options = filtered_wardrobe[filtered_wardrobe['Category'] == 'Lower body']
-
-                        # Try to find items with complementary colors (simple implementation)
-                        # This could be enhanced with a proper color theory algorithm
-                        if not lower_options.empty:
-                            # Prioritize neutral colors like black, white, grey, beige with any upper
-                            neutral_colors = ['black', 'white', 'grey', 'gray', 'beige', 'tan', 'navy', 'charcoal']
-                            neutral_mask = lower_options['Color'].apply(
-                                lambda x: any(
-                                    color.lower() in str(x).lower() for color in neutral_colors) if not pd.isna(
-                                    x) else False
-                            )
-
-                            if neutral_mask.any():
-                                lower = lower_options[neutral_mask].sample(1)
-                            else:
-                                # If no neutrals, just random selection
-                                lower = lower_options.sample(1)
-
-                        # Now select footwear that goes with both
-                        footwear_options = filtered_wardrobe[filtered_wardrobe['Category'] == 'Footwear']
-
-                        if not footwear_options.empty:
-                            # Prioritize neutral colors for footwear
-                            neutral_mask = footwear_options['Color'].apply(
-                                lambda x: any(
-                                    color.lower() in str(x).lower() for color in neutral_colors) if not pd.isna(
-                                    x) else False
-                            )
-
-                            if neutral_mask.any():
-                                footwear = footwear_options[neutral_mask].sample(1)
-                            else:
-                                # If no neutrals, just random selection
-                                footwear = footwear_options.sample(1)
-                    else:
-                        # If no color data for upper, select randomly
-                        lower = filtered_wardrobe[filtered_wardrobe['Category'] == 'Lower body'].sample(1)
-                        footwear = filtered_wardrobe[filtered_wardrobe['Category'] == 'Footwear'].sample(1)
-
-                # Determine season compatibility
-                seasons = []
-                for item in [upper, lower, footwear]:
-                    if 'Season' in item and not pd.isna(item['Season'].values[0]):
-                        item_seasons = item['Season'].values[0]
-                        if isinstance(item_seasons, str):
-                            if ',' in item_seasons:
-                                # Handle comma-separated list
-                                item_seasons_list = [s.strip() for s in item_seasons.split(',')]
-                                seasons.extend(item_seasons_list)
-                            else:
-                                seasons.append(item_seasons.strip())
-                        elif isinstance(item_seasons, list):
-                            # Handle list of seasons
-                            seasons.extend(item_seasons)
-
-                # Create combined season code
-                if not seasons:
-                    combined_season = 'Universal'
-                else:
-                    # Get unique seasons and sort them
-                    unique_seasons = sorted(set(seasons))
-                    combined_season = ', '.join(unique_seasons)
-
-                # Determine combined style
-                styles = []
-                for item in [upper, lower, footwear]:
-                    if 'Style' in item and not pd.isna(item['Style'].values[0]):
-                        item_styles = item['Style'].values[0]
-                        if isinstance(item_styles, str):
-                            if ',' in item_styles:
-                                # Handle comma-separated list
-                                item_styles_list = [s.strip() for s in item_styles.split(',')]
-                                styles.extend(item_styles_list)
-                            else:
-                                styles.append(item_styles.strip())
-                        elif isinstance(item_styles, list):
-                            # Handle list of styles
-                            styles.extend(item_styles)
-
-                if not styles:
-                    combined_style = 'Universal'
-                else:
-                    # Get unique styles and sort them
-                    unique_styles = sorted(set(styles))
-                    combined_style = ', '.join(unique_styles)
-
-                # Count how many combinations we already have to generate a new ID
-                combination_count = len(combinations_df) if not combinations_df.empty else 0
-                new_combination_id = f"C{combination_count + 1:03d}"
-
-                # Create combination ID with item models
-                item_combination_id = f"{upper['Model'].values[0]}_{lower['Model'].values[0]}_{footwear['Model'].values[0]}"
-
-                # Store current combination in session state
-                st.session_state.current_combination = {
-                    'Combination_ID': new_combination_id,
-                    'Item_Combination': item_combination_id,
-                    'Upper_Body': upper['Model'].values[0],
-                    'Lower_Body': lower['Model'].values[0],
-                    'Footwear': footwear['Model'].values[0],
-                    'Season_Match': combined_season,
-                    'Style_Match': combined_style
-                }
-
-                # Set flag to show rating UI
-                st.session_state.show_rating = True
+            # Check if wardrobe has entries and the required column
+            if wardrobe_df.empty:
+                st.error("Your wardrobe is empty. Please add some items first.")
+            elif 'Category' not in wardrobe_df.columns:
+                st.error("Category column not found in your wardrobe data.")
             else:
-                st.error(
-                    "Not enough items in your wardrobe with the selected filters. Please add more items or adjust your filters.")
+                # Check if we have enough items
+                categories = ["Upper body", "Lower body", "Footwear"]
+
+                # Create a copy of the wardrobe to work with
+                filtered_wardrobe = wardrobe_df.copy()
+
+                # Apply filters only if both columns exist
+                if season_filter and 'Season' in filtered_wardrobe.columns:
+                    # Keep items where any of the selected seasons match
+                    season_mask = filtered_wardrobe['Season'].apply(
+                        lambda x: isinstance(x, str) and any(season in x for season in season_filter)
+                    )
+                    filtered_wardrobe = filtered_wardrobe[season_mask]
+
+                if style_filter and 'Style' in filtered_wardrobe.columns:
+                    # Keep items where any of the selected styles match
+                    style_mask = filtered_wardrobe['Style'].apply(
+                        lambda x: isinstance(x, str) and any(style in x for style in style_filter)
+                    )
+                    filtered_wardrobe = filtered_wardrobe[style_mask]
+
+                # Check if we have at least one item for each category
+                category_counts = {cat: len(filtered_wardrobe[filtered_wardrobe['Category'] == cat])
+                                   for cat in categories}
+
+                missing_categories = [cat for cat, count in category_counts.items() if count == 0]
+
+                if missing_categories:
+                    st.error(
+                        f"Not enough items for: {', '.join(missing_categories)}. Add more items or adjust filters.")
+                else:
+                    # Get one item from each category
+                    upper = filtered_wardrobe[filtered_wardrobe['Category'] == 'Upper body'].sample(1)
+                    lower = filtered_wardrobe[filtered_wardrobe['Category'] == 'Lower body'].sample(1)
+                    footwear = filtered_wardrobe[filtered_wardrobe['Category'] == 'Footwear'].sample(1)
+
+                    # Extract seasons from each item
+                    seasons = []
+                    for item_df in [upper, lower, footwear]:
+                        if 'Season' in item_df.columns and not pd.isna(item_df['Season'].values[0]):
+                            season_value = item_df['Season'].values[0]
+                            if isinstance(season_value, str):
+                                if ',' in season_value:
+                                    seasons.extend([s.strip() for s in season_value.split(',')])
+                                else:
+                                    seasons.append(season_value.strip())
+
+                    # Create combined season code
+                    if not seasons:
+                        combined_season = 'Universal'
+                    else:
+                        unique_seasons = sorted(set(seasons))
+                        combined_season = ', '.join(unique_seasons)
+
+                    # Extract styles from each item
+                    styles = []
+                    for item_df in [upper, lower, footwear]:
+                        if 'Style' in item_df.columns and not pd.isna(item_df['Style'].values[0]):
+                            style_value = item_df['Style'].values[0]
+                            if isinstance(style_value, str):
+                                if ',' in style_value:
+                                    styles.extend([s.strip() for s in style_value.split(',')])
+                                else:
+                                    styles.append(style_value.strip())
+
+                    # Create combined style code
+                    if not styles:
+                        combined_style = 'Universal'
+                    else:
+                        unique_styles = sorted(set(styles))
+                        combined_style = ', '.join(unique_styles)
+
+                    # Generate a combination ID
+                    combination_count = len(combinations_df) if not combinations_df.empty else 0
+                    new_combination_id = f"C{combination_count + 1:03d}"
+
+                    # Store current combination in session state
+                    st.session_state.current_combination = {
+                        'Combination_ID': new_combination_id,
+                        'Upper_Body': upper['Model'].values[0],
+                        'Lower_Body': lower['Model'].values[0],
+                        'Footwear': footwear['Model'].values[0],
+                        'Season_Match': combined_season,
+                        'Style_Match': combined_style
+                    }
+
+                    # Set flag to show rating UI
+                    st.session_state.show_rating = True
 
         # Display the combination if available
         if st.session_state.show_rating and st.session_state.current_combination:
-
             combination = st.session_state.current_combination
 
             # Get item details
@@ -393,45 +332,33 @@ if page == "Main":
             # Display the combination
             st.subheader("Your Outfit Combination:")
 
-            col_upper, col_lower, col_foot = st.columns(3)
+            if not upper_details.empty:
+                upper_type = upper_details['Type'].values[0] if 'Type' in upper_details else "Unknown Type"
+                upper_color = f"({upper_details['Color'].values[0]})" if 'Color' in upper_details and not pd.isna(
+                    upper_details['Color'].values[0]) else ""
+                st.write(f"**Upper Body:** {upper_details['Model'].values[0]} - {upper_type} {upper_color}")
+            else:
+                st.write(f"**Upper Body:** {combination['Upper_Body']}")
 
-            with col_upper:
-                st.markdown("### Upper Body")
-                if not upper_details.empty:
-                    st.write(f"**Model:** {upper_details['Model'].values[0]}")
-                    st.write(f"**Type:** {upper_details['Type'].values[0]}")
-                    if 'Color' in upper_details.columns and not pd.isna(upper_details['Color'].values[0]):
-                        st.write(f"**Color:** {upper_details['Color'].values[0]}")
-                else:
-                    st.write(f"**Model:** {combination['Upper_Body']}")
-                    st.write("Item details not found")
+            if not lower_details.empty:
+                lower_type = lower_details['Type'].values[0] if 'Type' in lower_details else "Unknown Type"
+                lower_color = f"({lower_details['Color'].values[0]})" if 'Color' in lower_details and not pd.isna(
+                    lower_details['Color'].values[0]) else ""
+                st.write(f"**Lower Body:** {lower_details['Model'].values[0]} - {lower_type} {lower_color}")
+            else:
+                st.write(f"**Lower Body:** {combination['Lower_Body']}")
 
-            with col_lower:
-                st.markdown("### Lower Body")
-                if not lower_details.empty:
-                    st.write(f"**Model:** {lower_details['Model'].values[0]}")
-                    st.write(f"**Type:** {lower_details['Type'].values[0]}")
-                    if 'Color' in lower_details.columns and not pd.isna(lower_details['Color'].values[0]):
-                        st.write(f"**Color:** {lower_details['Color'].values[0]}")
-                else:
-                    st.write(f"**Model:** {combination['Lower_Body']}")
-                    st.write("Item details not found")
+            if not footwear_details.empty:
+                footwear_type = footwear_details['Type'].values[0] if 'Type' in footwear_details else "Unknown Type"
+                footwear_color = f"({footwear_details['Color'].values[0]})" if 'Color' in footwear_details and not pd.isna(
+                    footwear_details['Color'].values[0]) else ""
+                st.write(f"**Footwear:** {footwear_details['Model'].values[0]} - {footwear_type} {footwear_color}")
+            else:
+                st.write(f"**Footwear:** {combination['Footwear']}")
 
-            with col_foot:
-                st.markdown("### Footwear")
-                if not footwear_details.empty:
-                    st.write(f"**Model:** {footwear_details['Model'].values[0]}")
-                    st.write(f"**Type:** {footwear_details['Type'].values[0]}")
-                    if 'Color' in footwear_details.columns and not pd.isna(footwear_details['Color'].values[0]):
-                        st.write(f"**Color:** {footwear_details['Color'].values[0]}")
-                else:
-                    st.write(f"**Model:** {combination['Footwear']}")
-                    st.write("Item details not found")
-
-            st.markdown("---")
-            st.write(f"**Combination ID:** {combination['Combination_ID']}")
             st.write(f"**Season Compatibility:** {combination['Season_Match']}")
             st.write(f"**Style Compatibility:** {combination['Style_Match']}")
+            st.write(f"**Combination No.:** {combination['Combination_ID']}")
 
             # Rating section with separate form
             with st.form("rating_form"):
@@ -444,15 +371,11 @@ if page == "Main":
                     # Add rating to the combination
                     new_combination = combination.copy()
                     new_combination['Rating'] = rating
-                    new_combination['Notes'] = notes
+                    if notes:
+                        new_combination['Notes'] = notes
 
                     st.session_state.new_combination = new_combination
                     save_data(wardrobe_df, combinations_df)
-
-            # Option to generate another combination
-            if st.button("Generate Another Combination"):
-                st.session_state.show_rating = False
-                st.experimental_rerun()
 
 elif page == "Wardrobe":
     st.title("Your Wardrobe")
