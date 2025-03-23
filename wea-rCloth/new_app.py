@@ -80,6 +80,14 @@ def save_data(wardrobe_df, combinations_df):
             if k != 'TypeNumber' and pd.notna(v):  # Skip TypeNumber field
                 row_dict[k] = v
 
+        # Convert Style field from comma-separated string to list for Airtable multi-select
+        if 'Style' in row_dict and isinstance(row_dict['Style'], str):
+            row_dict['Style'] = [style.strip() for style in row_dict['Style'].split(',')]
+
+        # Similarly for Season if it's also a multi-select field
+        if 'Season' in row_dict and isinstance(row_dict['Season'], str):
+            row_dict['Season'] = [season.strip() for season in row_dict['Season'].split(',')]
+
         # Convert any numpy data types to Python native types
         for key, value in row_dict.items():
             if hasattr(value, 'item'):
@@ -91,8 +99,8 @@ def save_data(wardrobe_df, combinations_df):
             del st.session_state.new_item
         except Exception as e:
             st.error(f"Error saving to Airtable: {str(e)}")
+            st.error(f"Problematic data: {row_dict}")  # Add this to see the exact data being sent
             st.error("Check if all field names match your Airtable schema")
-
     # For combinations
     if 'new_combination' in st.session_state:
         new_combination = st.session_state.new_combination
