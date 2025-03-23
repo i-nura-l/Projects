@@ -16,10 +16,19 @@ if 'show_rating' not in st.session_state:
     st.session_state.show_rating = False
 if 'custom_types' not in st.session_state:
     st.session_state.custom_types = {
-        "Upper body": ["01-Shirt", "02-TShirt", "03-Sweater", "04-Jacket", "05-Coat"],
-        "Lower body": ["20-Jeans", "21-Trousers", "22-Shorts", "23-Skirt"],
-        "Footwear": ["30-Sneakers", "31-Formal", "32-Boots", "33-Sandals"]
+        "Upper body": ["01-Shirt", "02-TShirt", "03-Sweater", "04-Jacket", "05-Coat",
+                       "06-Hoodie", "07-Polo", "08-Vest", "09-Cardigan", "10-Blouse",
+                       "11-Turtleneck", "12-TankTop", "13-Sweatshirt", "14-Blazer",
+                       "15-CropTop", "16-Tunic", "17-Bodysuit", "18-Flannel", "19-Windbreaker"],
+        "Lower body": ["20-Jeans", "21-Trousers", "22-Shorts", "23-Skirt",
+                       "24-Sweatpants", "25-Leggings", "26-CargoPants", "27-Chinos",
+                       "28-CutOffs", "29-WideLeg"],
+        "Footwear": ["30-Sneakers", "31-Formal", "32-Boots", "33-Sandals",
+                     "34-Loafers", "35-Moccasins", "36-Espadrilles", "37-SlipOns",
+                     "38-HikingBoots", "39-RunningShoes"]
     }
+if 'type_options' not in st.session_state:
+    st.session_state.type_options = st.session_state.custom_types["Upper body"]
 
 # Initialize Airtable tables
 wardrobe_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea',
@@ -104,6 +113,16 @@ def save_data(wardrobe_df, combinations_df):
             st.error(f"Data being sent: {row_dict}")
 
 
+# Helper function to update type options when category changes
+def update_type_options():
+    category = st.session_state.category_select
+    # Update the type options based on the selected category
+    if category in st.session_state.custom_types:
+        st.session_state.type_options = st.session_state.custom_types[category]
+    else:
+        st.session_state.type_options = []
+
+
 # Load data
 wardrobe_df, combinations_df = load_data()
 
@@ -120,33 +139,16 @@ if page == "Main":
     with col1:
         st.subheader("Add New Clothing Item")
 
-
-        # Define a callback function to update type options when category changes
-        def update_type_options():
-            category = st.session_state.category_select
-            # Update the type options based on the selected category
-            if category in st.session_state.custom_types:
-                st.session_state.type_options = st.session_state.custom_types[category]
-            else:
-                st.session_state.type_options = []
-
-
         # Form for adding new clothing
         with st.form("new_cloth_form"):
-            # Select category with a callback
+            # First handle category selection (without the callback in the form)
             category = st.selectbox(
                 "Category",
                 ["Upper body", "Lower body", "Footwear"],
-                key="category_select",
-                on_change=update_type_options
+                key="category_select"
             )
 
-            # Initialize type_options in session state if not exists
-            if 'type_options' not in st.session_state:
-                if category in st.session_state.custom_types:
-                    st.session_state.type_options = st.session_state.custom_types[category]
-                else:
-                    st.session_state.type_options = []
+            # After form is submitted, we'll update type_options based on category
 
             # Type selection based on the current category's options
             cloth_type = st.selectbox("Type", st.session_state.type_options)
@@ -172,6 +174,9 @@ if page == "Main":
             submitted = st.form_submit_button("Add to Wardrobe")
 
             if submitted:
+                # Update type options based on the selected category
+                update_type_options()
+
                 new_item = {
                     'Model': model,
                     'Category': category,
@@ -518,3 +523,9 @@ elif page == "About":
     - Seasonal wardrobe planning
     - Outfit calendar
     """)
+
+# Outside of any page check, update type_options when navigating to the Main page
+if page == "Main":
+    category = st.session_state.get("category_select", "Upper body")
+    if category in st.session_state.custom_types:
+        st.session_state.type_options = st.session_state.custom_types[category]
