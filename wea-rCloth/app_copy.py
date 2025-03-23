@@ -51,16 +51,39 @@ def load_data():
 
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
-    for _, row in wardrobe_df.iterrows():
-        # Convert row to dict and remove any NaN values
-        row_dict = {k: v for k, v in row.to_dict().items() if pd.notna(v)}
-        wardrobe_table.create(row_dict)
-    
-    for _, row in combinations_df.iterrows():
-        # Convert row to dict and remove any NaN values
-        row_dict = {k: v for k, v in row.to_dict().items() if pd.notna(v)}
-        combinations_table.create(row_dict)
-
+    # We only want to save the new item, not the entire dataframe
+    if 'new_item' in st.session_state:
+        new_item = st.session_state.new_item
+        # Remove any NaN values and ensure all values are of valid types for Airtable
+        row_dict = {k: v for k, v in new_item.items() if pd.notna(v)}
+        # Convert any numpy data types to Python native types
+        for key, value in row_dict.items():
+            if hasattr(value, 'item'):  # Check if it's a numpy type
+                row_dict[key] = value.item()
+            
+        try:
+            wardrobe_table.create(row_dict)
+            st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
+            # Clear the new item from session state
+            del st.session_state.new_item
+        except Exception as e:
+            st.error(f"Error saving to Airtable: {str(e)}")
+            st.error("Check if all field names match your Airtable schema")
+            
+    # Similar approach for combinations
+    if 'new_combination' in st.session_state:
+        new_combination = st.session_state.new_combination
+        row_dict = {k: v for k, v in new_combination.items() if pd.notna(v)}
+        for key, value in row_dict.items():
+            if hasattr(value, 'item'):
+                row_dict[key] = value.item()
+                
+        try:
+            combinations_table.create(row_dict)
+            st.success(f"Saved rating for this combination!")
+            del st.session_state.new_combination
+        except Exception as e:
+            st.error(f"Error saving to Airtable: {str(e)}")
 
 # Load data
 wardrobe_df, combinations_df = load_data()
@@ -111,6 +134,7 @@ if page == "Main":
 
             submitted = st.form_submit_button("Add to Wardrobe")
 
+            
             if submitted:
                 new_item = {
                     'Model': model,
