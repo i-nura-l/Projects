@@ -227,10 +227,22 @@ if page == "Main":
 
                 # Create combined season code
                 if not seasons:
-                    combined_season = 'U'  # Universal
+                    combined_season = 'Universal'
                 else:
-                    combined_season = ''.join(sorted(set(seasons)))
-
+                    # Create comma-separated list of season names instead of abbreviations
+                    season_names = []
+                    for s in sorted(set(seasons)):
+                        if s == 'W':
+                            season_names.append('Winter')
+                        elif s == 'V':
+                            season_names.append('Vernal')
+                        elif s == 'S':
+                            season_names.append('Summer')
+                        elif s == 'A':
+                            season_names.append('Autumn')
+                        elif s == 'U':
+                            season_names.append('Universal')
+                    combined_season = ', '.join(season_names)
                 # Determine combined style
                 styles = []
                 for item in [upper, lower, footwear]:
@@ -238,16 +250,24 @@ if page == "Main":
                         styles.append(item['Style'].values[0][0].lower())  # First letter of style
 
                 if not styles:
-                    combined_style = 'u'  # Universal
+                    combined_style = 'Universal'
                 else:
-                    combined_style = ''.join(sorted(set(styles)))
-
-                # Create combination ID
-                combination_id = f"{upper['Model'].values[0]}_{lower['Model'].values[0]}_{footwear['Model'].values[0]}"
+                    # Create comma-separated list of style names instead of abbreviations
+                    style_names = []
+                    for s in sorted(set(styles)):
+                        if s == 'c':
+                            style_names.append('Casual')
+                        elif s == 'f':
+                            style_names.append('Formal')
+                        elif s == 't':
+                            style_names.append('Trendy')
+                        elif s == 'u':
+                            style_names.append('Universal')
+                    combined_style = ', '.join(style_names)
 
                 # Store current combination in session state
                 st.session_state.current_combination = {
-                    'Combination_ID': combination_id,
+                    'Combination_ID': f'C{len(combinations_df) + 1:03d}',
                     'Upper_Body': upper['Model'].values[0],
                     'Lower_Body': lower['Model'].values[0],
                     'Footwear': footwear['Model'].values[0],
