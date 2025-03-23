@@ -13,27 +13,6 @@ st.set_page_config(page_title="wea-rCloth", layout="wide")
 if 'current_combination' not in st.session_state:
     st.session_state.current_combination = None
 
-
-# # Functions for file operations
-# def load_data():
-#     try:
-#         wardrobe_df = pd.read_csv('wardrobe_data.csv')
-#         combinations_df = pd.read_csv('combinations_data.csv')
-#     except FileNotFoundError:
-#         wardrobe_df = pd.DataFrame(columns=[
-#             'Model', 'Category', 'Type', 'TypeNumber', 'Style', 'Color', 'Season'
-#         ])
-#         combinations_df = pd.DataFrame(columns=[
-#             'CombinationID', 'UpperBody', 'LowerBody', 'Footwear', 'Season', 'Style', 'Rating'
-#         ])
-#     return wardrobe_df, combinations_df
-#
-#
-# def save_data(wardrobe_df, combinations_df):
-#     wardrobe_df.to_csv('wardrobe_data.csv', index=False)
-#     combinations_df.to_csv('combinations_data.csv', index=False)
-
-
 # Initialize Airtable tables
 wardrobe_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', 'appdgbGbEz1Dtynvg', 'wardrobe_data')
 combinations_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea', 'appdgbGbEz1Dtynvg', 'combinations_data')
@@ -185,84 +164,122 @@ if page == "Main":
         st.subheader("Generate Outfit Combination")
 
         if st.button("Generate New Combination"):
-            # Check if we have enough items
-            categories = ["Upper body", "Lower body", "Footwear"]
-            has_all_categories = all(len(wardrobe_df[wardrobe_df['Category'] == cat]) > 0 for cat in categories)
+            # Check if we have enough items - handle error safely
+            try:
+                # Check if we have at least one item in each category
+                categories = ["Upper body", "Lower body", "Footwear"]
+                category_counts = {cat: len(wardrobe_df[wardrobe_df['Category'] == cat])
+                                   for cat in categories if 'Category' in wardrobe_df.columns}
 
-            if has_all_categories:
-                # Get one item from each category
-                upper = wardrobe_df[wardrobe_df['Category'] == 'Upper body'].sample(1)
-                lower = wardrobe_df[wardrobe_df['Category'] == 'Lower body'].sample(1)
-                footwear = wardrobe_df[wardrobe_df['Category'] == 'Footwear'].sample(1)
+                has_all_categories = all(category_counts.get(cat, 0) > 0 for cat in categories)
 
-                # Determine season compatibility
-                seasons = []
-                for item in [upper, lower, footwear]:
-                    if item['Season'].values[0] != 'Universal':
-                        seasons.append(item['Season'].values[0][0])  # First letter of season
+                if has_all_categories:
+                    # Get one item from each category
+                    upper = wardrobe_df[wardrobe_df['Category'] == 'Upper body'].sample(1)
+                    lower = wardrobe_df[wardrobe_df['Category'] == 'Lower body'].sample(1)
+                    footwear = wardrobe_df[wardrobe_df['Category'] == 'Footwear'].sample(1)
 
-                # Create combined season code
-                if not seasons:
-                    combined_season = 'U'  # Universal
-                else:
-                    combined_season = ''.join(sorted(set(seasons)))
+                    # Determine season compatibility - handle potential missing columns safely
+                    seasons = []
+                    for item_df in [upper, lower, footwear]:
+                        if 'Season' in item_df.columns and len(item_df) > 0:
+                            season_val = item_df['Season'].values[0]
+                            if isinstance(season_val, str) and season_val != 'Universal':
+                                # Handle comma-separated values
+                                if ',' in season_val:
+                                    for s in season_val.split(','):
+                                        seasons.append(s.strip()[0])  # First letter of each season
+                                else:
+                                    seasons.append(season_val[0])  # First letter of season
 
-                # Determine combined style
-                styles = []
-                for item in [upper, lower, footwear]:
-                    if item['Style'].values[0] != 'Universal':
-                        styles.append(item['Style'].values[0][0].lower())  # First letter of style
-
-                if not styles:
-                    combined_style = 'u'  # Universal
-                else:
-                    combined_style = ''.join(sorted(set(styles)))
-
-                # Create combination ID
-                combination_id = f"{upper['Model'].values[0]}_{lower['Model'].values[0]}_{footwear['Model'].values[0]}"
-
-                # Store current combination in session state
-                st.session_state.current_combination = {
-                    'Combination_ID': combination_id,  # Note the underscore
-                    'Upper_Body': upper['Model'].values[0],  # Note the underscore
-                    'Lower_Body': lower['Model'].values[0],  # Note the underscore
-                    'Footwear': footwear['Model'].values[0],
-                    'Season_Match': combined_season,  # Note the underscore
-                    'Style_Match': combined_style  # Note the underscore
-                }
-
-                # Display the combination
-                st.subheader("Your Outfit Combination:")
-                st.write(
-                    f"**Upper Body:** {upper['Model'].values[0]} - {upper['Type'].values[0]} ({upper['Color'].values[0]})")
-                st.write(
-                    f"**Lower Body:** {lower['Model'].values[0]} - {lower['Type'].values[0]} ({lower['Color'].values[0]})")
-                st.write(
-                    f"**Footwear:** {footwear['Model'].values[0]} - {footwear['Type'].values[0]} ({footwear['Color'].values[0]})")
-                st.write(f"**Season Compatibility:** {combined_season}")
-                st.write(f"**Style Compatibility:** {combined_style}")
-
-                # Rating slider
-                rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
-
-                if st.button("Save Rating"):
-                    # Check if combination already exists
-                    exists = combination_id in combinations_df['Combination_ID'].values  # Note the underscore
-
-                    if exists:
-                        # Update existing combination
-                        combinations_df.loc[combinations_df['Combination_ID'] == combination_id, 'Rating'] = rating
+                    # Create combined season code
+                    if not seasons:
+                        combined_season = 'U'  # Universal
                     else:
-                        # Add new combination
-                        new_combination = st.session_state.current_combination.copy()
-                        new_combination['Rating'] = rating
-                        combinations_df = pd.concat([combinations_df, pd.DataFrame([new_combination])],
-                                                    ignore_index=True)
+                        combined_season = ''.join(sorted(set(seasons)))
 
-                    st.session_state.new_combination = new_combination  # Store for saving to Airtable
-                    save_data(wardrobe_df, combinations_df)
-            else:
-                st.error("You need at least one item in each category to generate a combination!")
+                    # Determine combined style - safely handle potential missing columns
+                    styles = []
+                    for item_df in [upper, lower, footwear]:
+                        if 'Style' in item_df.columns and len(item_df) > 0 and not pd.isna(item_df['Style'].values[0]):
+                            style_val = item_df['Style'].values[0]
+                            if isinstance(style_val, str) and style_val != 'Universal':
+                                # Handle comma-separated values
+                                if ',' in style_val:
+                                    for s in style_val.split(','):
+                                        styles.append(s.strip()[0].lower())  # First letter of each style
+                                else:
+                                    styles.append(style_val[0].lower())  # First letter of style
+
+                    if not styles:
+                        combined_style = 'u'  # Universal
+                    else:
+                        combined_style = ''.join(sorted(set(styles)))
+
+                    # Create combination ID - safely access values
+                    upper_model = upper['Model'].values[0] if 'Model' in upper.columns else "unknown"
+                    lower_model = lower['Model'].values[0] if 'Model' in lower.columns else "unknown"
+                    footwear_model = footwear['Model'].values[0] if 'Model' in footwear.columns else "unknown"
+
+                    combination_id = f"{upper_model}_{lower_model}_{footwear_model}"
+
+                    # Store current combination in session state
+                    st.session_state.current_combination = {
+                        'Combination_ID': combination_id,
+                        'Upper_Body': upper_model,
+                        'Lower_Body': lower_model,
+                        'Footwear': footwear_model,
+                        'Season_Match': combined_season,
+                        'Style_Match': combined_style
+                    }
+
+                    # Display the combination - safely access values
+                    st.subheader("Your Outfit Combination:")
+
+                    # Safe display for upper body
+                    upper_type = upper['Type'].values[0] if 'Type' in upper.columns else "unknown type"
+                    upper_color = upper['Color'].values[0] if 'Color' in upper.columns else "unknown color"
+                    st.write(f"**Upper Body:** {upper_model} - {upper_type} ({upper_color})")
+
+                    # Safe display for lower body
+                    lower_type = lower['Type'].values[0] if 'Type' in lower.columns else "unknown type"
+                    lower_color = lower['Color'].values[0] if 'Color' in lower.columns else "unknown color"
+                    st.write(f"**Lower Body:** {lower_model} - {lower_type} ({lower_color})")
+
+                    # Safe display for footwear
+                    footwear_type = footwear['Type'].values[0] if 'Type' in footwear.columns else "unknown type"
+                    footwear_color = footwear['Color'].values[0] if 'Color' in footwear.columns else "unknown color"
+                    st.write(f"**Footwear:** {footwear_model} - {footwear_type} ({footwear_color})")
+
+                    st.write(f"**Season Compatibility:** {combined_season}")
+                    st.write(f"**Style Compatibility:** {combined_style}")
+
+                    # Rating slider
+                    rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
+
+                    if st.button("Save Rating"):
+                        # Check if combination already exists - safely handle potentially missing columns
+                        exists = False
+                        if 'Combination_ID' in combinations_df.columns:
+                            exists = combination_id in combinations_df['Combination_ID'].values
+
+                        if exists:
+                            # Update existing combination
+                            combinations_df.loc[combinations_df['Combination_ID'] == combination_id, 'Rating'] = rating
+                        else:
+                            # Add new combination
+                            new_combination = st.session_state.current_combination.copy()
+                            new_combination['Rating'] = rating
+                            combinations_df = pd.concat([combinations_df, pd.DataFrame([new_combination])],
+                                                        ignore_index=True)
+
+                        st.session_state.new_combination = new_combination  # Store for saving to Airtable
+                        save_data(wardrobe_df, combinations_df)
+                else:
+                    st.error("You need at least one item in each category to generate a combination!")
+            except Exception as e:
+                st.error(f"Error generating combination: {str(e)}")
+                st.info("Check that your wardrobe has data in the expected format.")
 
 elif page == "Wardrobe":
     st.title("Your Wardrobe")
