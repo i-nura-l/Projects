@@ -84,6 +84,11 @@ def save_data(wardrobe_df, combinations_df):
         if 'Style' in row_dict and isinstance(row_dict['Style'], str):
             row_dict['Style'] = [style.strip() for style in row_dict['Style'].split(',')]
 
+        # Color
+        if 'Color' in row_dict and isinstance(row_dict['Color'], str):
+            row_dict['Color'] = [color.strip() for color in row_dict['Color'].split(',')]
+
+
         # Similarly for Season if it's also a multi-select field
         if 'Season' in row_dict and isinstance(row_dict['Season'], str):
             row_dict['Season'] = [season.strip() for season in row_dict['Season'].split(',')]
@@ -101,6 +106,7 @@ def save_data(wardrobe_df, combinations_df):
             st.error(f"Error saving to Airtable: {str(e)}")
             st.error(f"Problematic data: {row_dict}")  # Add this to see the exact data being sent
             st.error("Check if all field names match your Airtable schema")
+
     # For combinations
     if 'new_combination' in st.session_state:
         new_combination = st.session_state.new_combination
