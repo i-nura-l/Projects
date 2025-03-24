@@ -504,53 +504,56 @@ elif page == "Data Cleaning":
 
         # Iterate over each row with missing values.
         for idx, row in missing_wardrobe_df.iterrows():
-            # Use the actual Airtable ID if available; otherwise, fallback (which won't be deletable).
-            record_id = row.get("id", f"row_{idx}")
-            st.markdown(f"**Record ID: {record_id}**")
+            # Instead of using the 'id' from Airtable, we use the 'Model' field as unique identifier.
+            model_val = row.get("Model", f"row_{idx}")
+            st.markdown(f"**Record Model: {model_val}**")
             st.write(row)
 
             # For every column with missing data, show input.
             for col in wardrobe_df.columns:
-                if col == "id":
+                if col == "Model":
                     continue
                 if pd.isna(row[col]) or row[col] == "":
                     if col in ["Style", "Season"]:
                         options = [opt for opt in get_unique_values(wardrobe_df, col) if opt]
-                        fill_value = st.multiselect(f"Fill missing {col} for record {record_id}", options,
-                                                    key=f"{record_id}_{col}")
+                        fill_value = st.multiselect(f"Fill missing {col} for record {model_val}", options,
+                                                    key=f"{model_val}_{col}")
                     else:
-                        fill_value = st.text_input(f"Fill missing {col} for record {record_id}",
-                                                   key=f"{record_id}_{col}")
+                        fill_value = st.text_input(f"Fill missing {col} for record {model_val}",
+                                                   key=f"{model_val}_{col}")
 
-                    if record_id not in updated_records:
-                        updated_records[record_id] = {}
-                    updated_records[record_id][col] = fill_value
+                    if model_val not in updated_records:
+                        updated_records[model_val] = {}
+                    updated_records[model_val][col] = fill_value
 
-            # Check if record has a valid Airtable ID before allowing deletion.
-            if isinstance(record_id, str) and not record_id.startswith("row_"):
-                drop = st.checkbox(f"Mark record {record_id} for deletion", key=f"drop_{record_id}")
-                if drop:
-                    updated_records[record_id] = "DROP"
-            else:
-                st.warning(f"Record {record_id} does not have a valid Airtable ID; cannot be deleted.")
+            # Provide a checkbox to mark the record for deletion.
+            drop = st.checkbox(f"Mark record with Model {model_val} for deletion", key=f"drop_{model_val}")
+            if drop:
+                updated_records[model_val] = "DROP"
 
             st.markdown("---")
 
         if st.button("Submit Changes for Wardrobe"):
-            for record_id, update in updated_records.items():
-                # Only attempt deletion if record_id is valid.
+            for model_val, update in updated_records.items():
+                # Get the Airtable record ID by searching for the model name.
+                record_id = get_record_id_by_model(model_val)
+                if record_id is None:
+                    st.warning(f"Could not find record for Model {model_val} in Airtable. Skipping deletion/update.")
+                    continue
+
                 if update == "DROP":
                     try:
                         wardrobe_table.delete(record_id)
-                        st.write(f"Deleted record {record_id}")
+                        st.write(f"Deleted record for Model {model_val} (Record ID: {record_id})")
                     except Exception as e:
-                        st.error(f"Error deleting record {record_id}: {e}")
+                        st.error(f"Error deleting record for Model {model_val}: {e}")
                 else:
                     try:
                         response = wardrobe_table.update(record_id, update)
-                        st.write(f"Updated record {record_id}: {response}")
+                        st.write(f"Updated record for Model {model_val}: {response}")
                     except Exception as e:
-                        st.error(f"Error updating record {record_id}: {e}")
+                        st.error(f"Error updating record for Model {model_val}: {e}")
+            # Refresh data after updates.
             wardrobe_df, combinations_df = load_data()
             st.success("Changes submitted and data refreshed.")
 
