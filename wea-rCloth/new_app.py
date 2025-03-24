@@ -165,7 +165,7 @@ wardrobe_df, combinations_df = load_data()
 
 # Sidebar navigation
 st.sidebar.title("wea-rCloth")
-page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Analysis", "About"])
+page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "About"])
 
 if page == "Main":
     st.title("wea-rCloth - Your Smart Wardrobe Assistant")
@@ -405,6 +405,52 @@ elif page == "Wardrobe":
         st.write(f"Showing {len(filtered_df)} of {len(wardrobe_df)} items")
     else:
         st.info("No items in your wardrobe yet. Add some from the Main page!")
+
+
+elif page == "Combinations":
+    st.title("Combination Records")
+    st.sidebar.subheader("Filter Options for Combinations")
+
+
+    # Helper function to filter multi-select fields.
+    def filter_list_field(cell, selected_options):
+        if isinstance(cell, list):
+            return any(item in cell for item in selected_options)
+        elif isinstance(cell, str):
+            # Split the string if it contains comma-separated values.
+            items = [i.strip() for i in cell.split(',')]
+            return any(item in items for item in selected_options)
+        return False
+
+
+    # Use the get_unique_values function to extract unique values from the multi-select fields.
+    unique_seasons = get_unique_values(combinations_df, "Season_Match")
+    unique_styles = get_unique_values(combinations_df, "Style_Match")
+
+    filter_season = st.sidebar.multiselect("Season", unique_seasons)
+    filter_style = st.sidebar.multiselect("Style", unique_styles)
+
+    # Filter by rating range (0 to 10)
+    rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
+
+    filtered_df = combinations_df.copy()
+
+    # Apply Season filter: check if any of the selected seasons appear in the Season_Match field.
+    if filter_season:
+        filtered_df = filtered_df[
+            filtered_df["Season_Match"].apply(lambda cell: filter_list_field(cell, filter_season))]
+
+    # Apply Style filter: check if any of the selected styles appear in the Style_Match field.
+    if filter_style:
+        filtered_df = filtered_df[filtered_df["Style_Match"].apply(lambda cell: filter_list_field(cell, filter_style))]
+
+    # Apply Rating filter if the "Rating" column exists.
+    if "Rating" in filtered_df.columns:
+        filtered_df = filtered_df[
+            filtered_df["Rating"].apply(lambda x: x is not None and rating_range[0] <= x <= rating_range[1])]
+
+    st.dataframe(filtered_df)
+    st.write(f"Showing {len(filtered_df)} of {len(combinations_df)} combination records.")
 
 elif page == "Analysis":
     st.title("Wardrobe Analysis")
