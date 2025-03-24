@@ -299,9 +299,9 @@ if page == "Main":
                     lower = lower_filtered.sample(1)
                     footwear = footwear_filtered.sample(1)
 
-                    # Generate a new Combination ID in the format "C001", "C002", etc.
-                    if not combinations_df.empty and 'Combination ID' in combinations_df.columns:
-                        codes = [code for code in combinations_df['Combination ID']
+                    # Generate a new Combination_ID in the format "C001", "C002", etc.
+                    if not combinations_df.empty and 'Combination_ID' in combinations_df.columns:
+                        codes = [code for code in combinations_df['Combination_ID']
                                  if isinstance(code, str) and code.startswith('C')]
                         if codes:
                             max_num = max(int(code[1:]) for code in codes)
@@ -315,12 +315,12 @@ if page == "Main":
                     # Save the generated combination in session state.
                     # Note: Send multi-select fields as lists.
                     st.session_state.current_combination = {
-                        "Combination ID": combination_id,
-                        "Upper Body": upper["Model"].values[0],
-                        "Lower Body": lower["Model"].values[0],
+                        "Combination_ID": combination_id,
+                        "Upper_Body": upper["Model"].values[0],
+                        "Lower_Body": lower["Model"].values[0],
                         "Footwear": footwear["Model"].values[0],
-                        "Season Match": upper_seasons,  # Multi-select field as list
-                        "Style Match": upper_styles  # Multi-select field as list
+                        "Season_Match": upper_seasons,  # Multi-select field as list
+                        "Style_Match": upper_styles  # Multi-select field as list
                     }
                     st.session_state.show_rating = True
         except Exception as e:
@@ -351,8 +351,8 @@ if page == "Main":
             else:
                 st.write(f"**Footwear:** {combination['Footwear']}")
 
-            st.write(f"**Season Compatibility:** {', '.join(combination['Season Match'])}")
-            st.write(f"**Style Compatibility:** {', '.join(combination['Style Match'])}")
+            st.write(f"**Season Compatibility:** {', '.join(combination['Season_Match'])}")
+            st.write(f"**Style Compatibility:** {', '.join(combination['Style_Match'])}")
 
             with st.form("rating_form"):
                 rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
