@@ -301,17 +301,27 @@ if page == "Main":
                     lower = lower_filtered.sample(1)
                     footwear = footwear_filtered.sample(1)
 
-                    # Create a combination ID
-                    combination_id = f"{upper['Model'].values[0]}_{lower['Model'].values[0]}_{footwear['Model'].values[0]}"
+                    # Generate a new Combination_ID based on previous combinations
+                    if not combinations_df.empty and 'Combination_ID' in combinations_df.columns:
+                        codes = [code for code in combinations_df['Combination_ID'] if
+                                 isinstance(code, str) and code.startswith('C')]
+                        if codes:
+                            max_num = max(int(code[1:]) for code in codes)
+                            new_num = max_num + 1
+                        else:
+                            new_num = 1
+                    else:
+                        new_num = 1
+                    combination_id = f"C{new_num:03d}"
 
-                    # Save the combination in session state
+                    # Save the combination in session state; send Season_Match and Style_Match as lists
                     st.session_state.current_combination = {
                         'Combination_ID': combination_id,
                         'Upper_Body': upper['Model'].values[0],
                         'Lower_Body': lower['Model'].values[0],
                         'Footwear': footwear['Model'].values[0],
-                        'Season_Match': upper_season_str,
-                        'Style_Match': upper_style_str
+                        'Season_Match': upper_seasons,
+                        'Style_Match': upper_styles
                     }
                     st.session_state.show_rating = True
         except Exception as e:
