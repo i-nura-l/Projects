@@ -421,6 +421,20 @@ elif page == "Combinations":
 
     st.dataframe(combo_filtered_df)
     st.write(f"Showing {len(combo_filtered_df)} of {len(combinations_df)} combination records.")
+    # If we have combinations, show rating analysis
+    if not combinations_df.empty:
+        st.subheader("Combination Ratings Analysis")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(combinations_df['Rating'], bins=11, kde=True, ax=ax)
+        ax.set_title('Distribution of Outfit Ratings')
+        ax.set_xlabel('Rating')
+        ax.set_ylabel('Count')
+        st.pyplot(fig)
+
+        # Top rated
+        st.subheader("Top Rated Combinations")
+        top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
+        st.dataframe(top_combinations)
 
     # st.subheader("Delete Duplicate Combinations")
     # if not combinations_df.empty:
