@@ -43,35 +43,35 @@ combinations_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef
 
 
 def load_data():
+    """Fetch data from Airtable instead of local CSVs."""
     wardrobe_records = wardrobe_table.all()
     combinations_records = combinations_table.all()
 
-    wardrobe_df = pd.DataFrame(
-        [{'id': rec['id'], **rec['fields']} for rec in wardrobe_records if 'fields' in rec and rec['fields']]
-    ) if wardrobe_records else pd.DataFrame()
-
-    combinations_df = pd.DataFrame(
-        [{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]
-    ) if combinations_records else pd.DataFrame()
+    # Create DataFrames from records
+    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if
+                                'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
+    combinations_df = pd.DataFrame([{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
 
     # Reset index to start from 1
     if not wardrobe_df.empty:
         wardrobe_df = wardrobe_df.reset_index(drop=True)
         wardrobe_df.index = wardrobe_df.index + 1
+
     if not combinations_df.empty:
         combinations_df = combinations_df.reset_index(drop=True)
         combinations_df.index = combinations_df.index + 1
 
-    # Ensure expected columns exist in wardrobe_df
+    # Ensure all expected columns exist
     expected_columns = ['Model', 'Category', 'Type', 'Style', 'Color', 'Season']
     for col in expected_columns:
         if col not in wardrobe_df.columns:
             wardrobe_df[col] = None
 
-    # Convert multi-select fields to strings if needed
+    # Convert multi-select fields to string representation if needed
     multi_select_columns = ['Style', 'Season']
     for col in multi_select_columns:
         if col in wardrobe_df.columns:
+            # Convert lists to strings if they are lists
             wardrobe_df[col] = wardrobe_df[col].apply(
                 lambda x: ', '.join(x) if isinstance(x, list) else x
             )
