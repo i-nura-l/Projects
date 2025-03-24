@@ -158,6 +158,12 @@ def update_type_options():
     else:
         st.session_state.type_options = []
 
+def get_record_id_by_model(model_name):
+    """Search for a record in wardrobe_table by the 'Model' field and return its Airtable record ID."""
+    results = wardrobe_table.search("Model", model_name)
+    if results:
+        return results[0]["id"]
+    return None
 
 # Load data
 wardrobe_df, combinations_df = load_data()
