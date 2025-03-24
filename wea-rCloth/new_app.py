@@ -47,27 +47,30 @@ def load_data():
     wardrobe_records = wardrobe_table.all()
     combinations_records = combinations_table.all()
 
-    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records]) if wardrobe_records else pd.DataFrame()
-    combinations_df = pd.DataFrame(
-        [rec['fields'] for rec in combinations_records]) if combinations_records else pd.DataFrame()
+    # Create DataFrame from records and ensure we're only including records with fields
+    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if
+                                'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
+    combinations_df = pd.DataFrame([rec['fields'] for rec in combinations_records if
+                                    'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
 
-    # Load custom types from existing wardrobe data
-    if not wardrobe_df.empty and 'Type' in wardrobe_df.columns and 'Category' in wardrobe_df.columns:
-        # Group types by category
-        for category in wardrobe_df['Category'].unique():
-            types = wardrobe_df[wardrobe_df['Category'] == category]['Type'].unique().tolist()
-            # Update custom types only if we found some
-            if types:
-                # Merge with existing types without duplicates
-                if category in st.session_state.custom_types:
-                    all_types = list(set(st.session_state.custom_types[category] + types))
-                    st.session_state.custom_types[category] = sorted(all_types)
-                else:
-                    st.session_state.custom_types[category] = sorted(types)
+    # Reset index to start from 1 instead of 0
+    if not wardrobe_df.empty:
+        wardrobe_df = wardrobe_df.reset_index(drop=True)
+        wardrobe_df.index = wardrobe_df.index + 1  # Shift index to start from 1
+
+    if not combinations_df.empty:
+        combinations_df = combinations_df.reset_index(drop=True)
+        combinations_df.index = combinations_df.index + 1  # Shift index to start from 1
+
+    # Ensure all expected columns exist
+    expected_columns = ['Model', 'Category', 'Type', 'Style', 'Color', 'Season']
+    for col in expected_columns:
+        if col not in wardrobe_df.columns:
+            wardrobe_df[col] = None
+
+    # Rest of your function...
 
     return wardrobe_df, combinations_df
-
-
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
     if 'new_item' in st.session_state:
