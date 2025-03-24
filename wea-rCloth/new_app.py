@@ -50,8 +50,7 @@ def load_data():
     # Create DataFrames from records
     wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if
                                 'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
-    combinations_df = pd.DataFrame([rec['fields'] for rec in combinations_records if
-                                    'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
+    combinations_df = pd.DataFrame([{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
 
     # Reset index to start from 1
     if not wardrobe_df.empty:
