@@ -193,9 +193,9 @@ if page == "Main":
             # Use the stored category value inside the form
             cloth_type = st.selectbox("Type", st.session_state.type_options)
 
-            style = st.selectbox("Style", ["Casual", "Formal", "Trendy", "Universal"])
+            style = st.multiselect("Style", ["Casual", "Formal", "Trendy", "Universal"], default=["Casual"])
             color = st.text_input("Color")
-            season = st.selectbox("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"])
+            season = st.multiselect("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"], default=["Universal"])
 
             # Get the number of items of this type
             existing_items = wardrobe_df[(wardrobe_df['Category'] == st.session_state.form_category) &
