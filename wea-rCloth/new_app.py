@@ -228,57 +228,75 @@ if page == "Main":
     with col2:
         st.subheader("Generate Outfit Combination")
 
-        if st.button("Generate New Combination"):
-            # Check if we have enough items
-            categories = ["Upper body", "Lower body", "Footwear"]
-            has_all_categories = all(len(wardrobe_df[wardrobe_df['Category'] == cat]) > 0 for cat in categories)
+        # Step 1: Randomly select an Upper Body item.
+        upper_df = wardrobe_df[wardrobe_df['Category'] == 'Upper body']
+        upper = upper_df.sample(1)
+        # Assume multi-select fields are stored as comma-separated strings.
+        upper_season_str = upper['Season'].values[0]  # e.g., "Summer, Spring"
+        upper_style_str = upper['Style'].values[0]  # e.g., "Casual, Trendy"
+        # Convert to lists.
+        upper_seasons = [s.strip() for s in upper_season_str.split(',')]
+        upper_styles = [s.strip() for s in upper_style_str.split(',')]
 
-            if has_all_categories:
-                # Get one item from each category
-                upper = wardrobe_df[wardrobe_df['Category'] == 'Upper body'].sample(1)
-                lower = wardrobe_df[wardrobe_df['Category'] == 'Lower body'].sample(1)
-                footwear = wardrobe_df[wardrobe_df['Category'] == 'Footwear'].sample(1)
 
-                # Determine season compatibility using full names
-                seasons = []
-                for item in [upper, lower, footwear]:
-                    season_val = item['Season'].values[0]
-                    if season_val != 'Universal':
-                        seasons.append(season_val)
-                if not seasons:
-                    combined_season = 'Universal'
-                else:
-                    unique_seasons = sorted(set(seasons))
-                    # If all items match strictly, it will just be one value
-                    combined_season = ", ".join(unique_seasons)
+        # Helper functions to check matching.
+        def matches_season(candidate_season_str, upper_seasons):
+            candidate_seasons = [s.strip() for s in candidate_season_str.split(',')]
+            if "Universal" in candidate_seasons:
+                return True
+            # Return True if any candidate season is in the upper body's seasons.
+            return any(s in upper_seasons for s in candidate_seasons)
 
-                # Determine style compatibility using full names
-                styles = []
-                for item in [upper, lower, footwear]:
-                    style_val = item['Style'].values[0]
-                    if style_val != 'Universal':
-                        styles.append(style_val)
-                if not styles:
-                    combined_style = 'Universal'
-                else:
-                    unique_styles = sorted(set(styles))
-                    combined_style = ", ".join(unique_styles)
 
-                # Create combination ID
-                combination_id = f"{upper['Model'].values[0]}_{lower['Model'].values[0]}_{footwear['Model'].values[0]}"
+        def matches_style(candidate_style_str, upper_styles):
+            candidate_styles = [s.strip() for s in candidate_style_str.split(',')]
+            if "Universal" in candidate_styles:
+                return True
+            return any(s in upper_styles for s in candidate_styles)
 
-                # Store current combination in session state
-                st.session_state.current_combination = {
-                    'Combination_ID': combination_id,
-                    'Upper_Body': upper['Model'].values[0],
-                    'Lower_Body': lower['Model'].values[0],
-                    'Footwear': footwear['Model'].values[0],
-                    'Season_Match': combined_season,
-                    'Style_Match': combined_style
-                }
 
-                # Set flag to show rating UI
-                st.session_state.show_rating = True
+        # Step 2: Filter Lower body and Footwear items by season.
+        lower_df = wardrobe_df[wardrobe_df['Category'] == 'Lower body']
+        footwear_df = wardrobe_df[wardrobe_df['Category'] == 'Footwear']
+
+        lower_filtered = lower_df[lower_df['Season'].apply(lambda x: matches_season(x, upper_seasons))]
+        footwear_filtered = footwear_df[footwear_df['Season'].apply(lambda x: matches_season(x, upper_seasons))]
+
+        # Fallback if filtering yields no candidates.
+        if lower_filtered.empty:
+            lower_filtered = lower_df
+        if footwear_filtered.empty:
+            footwear_filtered = footwear_df
+
+        # Step 3 (Optional): Enforce strict style matching.
+        enforce_style = True  # Set to False to disable style filtering.
+        if enforce_style:
+            lower_filtered = lower_filtered[lower_filtered['Style'].apply(lambda x: matches_style(x, upper_styles))]
+            footwear_filtered = footwear_filtered[
+                footwear_filtered['Style'].apply(lambda x: matches_style(x, upper_styles))]
+            # Fallback if style filtering leaves no candidates.
+            if lower_filtered.empty:
+                lower_filtered = lower_df[lower_df['Season'].apply(lambda x: matches_season(x, upper_seasons))]
+            if footwear_filtered.empty:
+                footwear_filtered = footwear_df[footwear_df['Season'].apply(lambda x: matches_season(x, upper_seasons))]
+
+        # Step 4: Randomly select one item from each filtered category.
+        lower = lower_filtered.sample(1)
+        footwear = footwear_filtered.sample(1)
+
+        # Create a combination ID (customize as needed)
+        combination_id = f"{upper['Model'].values[0]}_{lower['Model'].values[0]}_{footwear['Model'].values[0]}"
+
+        # Save the combination with the upper body's season and style as reference.
+        st.session_state.current_combination = {
+            'Combination_ID': combination_id,
+            'Upper_Body': upper['Model'].values[0],
+            'Lower_Body': lower['Model'].values[0],
+            'Footwear': footwear['Model'].values[0],
+            'Season_Match': upper_season_str,
+            'Style_Match': upper_style_str
+        }
+        st.session_state.show_rating = True
 
         # Display the combination if available
         if st.session_state.show_rating and st.session_state.current_combination:
