@@ -120,37 +120,34 @@ def save_data(wardrobe_df, combinations_df):
             if hasattr(value, 'item'):
                 row_dict[key] = value.item()
 
-        try:
-            wardrobe_table.create(row_dict)
-            st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
-            del st.session_state.new_item
-        except Exception as e:
-            st.error(f"Error saving to Airtable: {str(e)}")
-            st.error("Check if all field names match your Airtable schema")
+            try:
+                wardrobe_table.create(row_dict)
+                st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
+                del st.session_state.new_item
+            except Exception as e:
+                st.error(f"Error saving to Airtable: {str(e)}")
+                st.error("Check if all field names match your Airtable schema")
 
-    # For combinations
-    if 'new_combination' in st.session_state:
-        new_combination = st.session_state.new_combination
+        # Save new combination if it exists
+        if 'new_combination' in st.session_state:
+            new_combination = st.session_state.new_combination
+            row_dict = {}
+            for k, v in new_combination.items():
+                if isinstance(v, list):
+                    if len(v) > 0:
+                        row_dict[k] = v
+                else:
+                    if pd.notna(v):
+                        row_dict[k] = v
 
-        # Ensure we're using the correct field names for Airtable
-        row_dict = {}
-        for k, v in new_combination.items():
-            if pd.notna(v):
-                row_dict[k] = v
-
-        # Convert any numpy data types to Python native types
-        for key, value in row_dict.items():
-            if hasattr(value, 'item'):
-                row_dict[key] = value.item()
-
-        try:
-            combinations_table.create(row_dict)
-            st.success(f"Saved rating for this combination!")
-            del st.session_state.new_combination
-            st.session_state.show_rating = False  # Reset rating UI state
-        except Exception as e:
-            st.error(f"Error saving combination to Airtable: {str(e)}")
-            st.error(f"Data being sent: {row_dict}")
+            try:
+                combinations_table.create(row_dict)
+                st.success("Saved rating for this combination!")
+                del st.session_state.new_combination
+                st.session_state.show_rating = False  # Reset rating UI state
+            except Exception as e:
+                st.error(f"Error saving combination to Airtable: {str(e)}")
+                st.error(f"Data being sent: {row_dict}")
 
 
 # Function to update type options based on selected category
