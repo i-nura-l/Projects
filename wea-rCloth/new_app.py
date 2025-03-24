@@ -144,6 +144,7 @@ if page == "Main":
 
             style = st.multiselect("Style", ["Casual", "Formal", "Trendy", "Universal"])
             season = st.multiselect("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"])
+
             color = st.text_input("Color")
 
             # Get the number of items of this type
@@ -167,11 +168,10 @@ if page == "Main":
                     'Model': model,
                     'Category': st.session_state.form_category,
                     'Type': cloth_type,
-                    'Style': style,  # already a list
-                    'Color': color,  # keep as string if Color is a text field
-                    'Season': season  # already a list
+                    'Style': style,
+                    'Color': color,
+                    'Season': season
                 }
-
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
                 st.session_state.new_item = new_item
                 save_data(wardrobe_df, combinations_df)
