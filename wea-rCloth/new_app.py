@@ -1,8 +1,10 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from pyairtable import Table
+import random
+import os
 
 # Set page config
 st.set_page_config(page_title="wea-rCloth", layout="wide")
@@ -46,8 +48,10 @@ def load_data():
     combinations_records = combinations_table.all()
 
     # Create DataFrames from records
-    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if 'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
-    combinations_df = pd.DataFrame([{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
+    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if
+                                'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
+    combinations_df = pd.DataFrame([rec['fields'] for rec in combinations_records if
+                                    'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
 
     # Reset index to start from 1
     if not wardrobe_df.empty:
@@ -407,82 +411,46 @@ elif page == "Combinations":
     st.title("Combination Records")
     st.sidebar.subheader("Filter Options for Combinations")
 
-    # Use the get_unique_values function to extract unique values from multi-select fields.
-    unique_seasons = get_unique_values(combinations_df, "Season_Match")
-    unique_styles = get_unique_values(combinations_df, "Style_Match")
 
-    filter_season = st.sidebar.multiselect("Season", unique_seasons)
-    filter_style = st.sidebar.multiselect("Style", unique_styles)
-    rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
-
-    filtered_df = combinations_df.copy()
-
-
+    # Helper function to filter multi-select fields.
     def filter_list_field(cell, selected_options):
         if isinstance(cell, list):
             return any(item in cell for item in selected_options)
         elif isinstance(cell, str):
+            # Split the string if it contains comma-separated values.
             items = [i.strip() for i in cell.split(',')]
             return any(item in items for item in selected_options)
         return False
 
 
+    # Use the get_unique_values function to extract unique values from the multi-select fields.
+    unique_seasons = get_unique_values(combinations_df, "Season_Match")
+    unique_styles = get_unique_values(combinations_df, "Style_Match")
+
+    filter_season = st.sidebar.multiselect("Season", unique_seasons)
+    filter_style = st.sidebar.multiselect("Style", unique_styles)
+
+    # Filter by rating range (0 to 10)
+    rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
+
+    filtered_df = combinations_df.copy()
+
+    # Apply Season filter: check if any of the selected seasons appear in the Season_Match field.
     if filter_season:
         filtered_df = filtered_df[
             filtered_df["Season_Match"].apply(lambda cell: filter_list_field(cell, filter_season))]
+
+    # Apply Style filter: check if any of the selected styles appear in the Style_Match field.
     if filter_style:
         filtered_df = filtered_df[filtered_df["Style_Match"].apply(lambda cell: filter_list_field(cell, filter_style))]
+
+    # Apply Rating filter if the "Rating" column exists.
     if "Rating" in filtered_df.columns:
         filtered_df = filtered_df[
             filtered_df["Rating"].apply(lambda x: x is not None and rating_range[0] <= x <= rating_range[1])]
 
     st.dataframe(filtered_df)
     st.write(f"Showing {len(filtered_df)} of {len(combinations_df)} combination records.")
-
-    st.subheader("Delete Duplicate Combinations")
-    if not combinations_df.empty:
-        # Define a helper to compute a signature for each combination.
-        def get_combination_signature(row):
-            upper = row.get("Upper_Body", "")
-            lower = row.get("Lower_Body", "")
-            # Ensure Season_Match and Style_Match are lists (if not, split comma-separated strings)
-            season = row.get("Season_Match", [])
-            style = row.get("Style_Match", [])
-            if not isinstance(season, list):
-                season = [s.strip() for s in str(season).split(',')]
-            if not isinstance(style, list):
-                style = [s.strip() for s in str(style).split(',')]
-            season_sig = "|".join(sorted(season))
-            style_sig = "|".join(sorted(style))
-            return f"{upper}-{lower}-{season_sig}-{style_sig}"
-
-
-        combinations_df["signature"] = combinations_df.apply(get_combination_signature, axis=1)
-        # Identify groups with duplicates
-        duplicate_groups = combinations_df.groupby("signature").filter(lambda x: len(x) > 1)
-
-        if duplicate_groups.empty:
-            st.write("No duplicate combinations found.")
-        else:
-            st.write("The following duplicate groups were found:")
-            for sig, group in combinations_df.groupby("signature"):
-                if len(group) > 1:
-                    st.write(f"**Signature:** {sig}")
-                    st.dataframe(group)
-                    if st.button(f"Delete duplicates for signature {sig}"):
-                        # Sort by record id (or another criterion) and keep the first one.
-                        duplicates = group.sort_values("id").iloc[1:]
-                        for rid in duplicates["id"]:
-                            try:
-                                combinations_table.delete(rid)
-                                st.write(f"Deleted record ID: {rid}")
-                            except Exception as e:
-                                st.error(f"Error deleting record {rid}: {e}")
-                        st.success("Duplicates deleted for this group. Please refresh the page.")
-    else:
-        st.write("No combination records available.")
-
-
 
 elif page == "Analysis":
     st.title("Wardrobe Analysis")
