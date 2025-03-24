@@ -3,150 +3,113 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pyairtable import Table
-import random
 import os
+import traceback
 
-# Set page config
+# ---------------------------- CONFIGURATION ----------------------------
+CATEGORY_OPTIONS = {
+    "Upper body": ["01-Shirt", "02-TShirt", "03-Sweater", "04-Jacket", "05-Coat",
+                   "06-Hoodie", "07-Polo", "08-Vest", "09-Cardigan", "10-Blouse",
+                   "11-Turtleneck", "12-TankTop", "13-Sweatshirt", "14-Blazer",
+                   "15-CropTop", "16-Tunic", "17-Bodysuit", "18-Flannel", "19-Windbreaker"],
+    "Lower body": ["01-Jeans", "02-Trousers", "03-Shorts", "04-Skirt",
+                   "05-Sweatpants", "06-Leggings", "07-CargoPants", "08-Chinos",
+                   "09-CutOffs", "10-WideLeg"],
+    "Footwear": ["01-Sneakers", "02-Formal", "03-Boots", "04-Sandals",
+                 "05-Loafers", "06-Moccasins", "07-Espadrilles", "08-SlipOns",
+                 "09-HikingBoots", "10-RunningShoes"]
+}
+
+STYLE_OPTIONS = ["Casual", "Formal", "Trendy", "Universal"]
+SEASON_OPTIONS = ["Winter", "Vernal", "Summer", "Autumn", "Universal"]
+
+# ---------------------------- SESSION INITIALIZATION ----------------------------
 st.set_page_config(page_title="wea-rCloth", layout="wide")
 
-# Initialize session state
 if 'current_combination' not in st.session_state:
     st.session_state.current_combination = None
 if 'show_rating' not in st.session_state:
     st.session_state.show_rating = False
 if 'custom_types' not in st.session_state:
-    st.session_state.custom_types = {
-        "Upper body": ["01-Shirt", "02-TShirt", "03-Sweater", "04-Jacket", "05-Coat",
-                       "06-Hoodie", "07-Polo", "08-Vest", "09-Cardigan", "10-Blouse",
-                       "11-Turtleneck", "12-TankTop", "13-Sweatshirt", "14-Blazer",
-                       "15-CropTop", "16-Tunic", "17-Bodysuit", "18-Flannel", "19-Windbreaker"],
-        "Lower body": [
-            "01-Jeans", "02-Trousers", "03-Shorts", "04-Skirt",
-            "05-Sweatpants", "06-Leggings", "07-CargoPants", "08-Chinos",
-            "09-CutOffs", "10-WideLeg"
-        ],
-        "Footwear": [
-            "01-Sneakers", "02-Formal", "03-Boots", "04-Sandals",
-            "05-Loafers", "06-Moccasins", "07-Espadrilles", "08-SlipOns",
-            "09-HikingBoots", "10-RunningShoes"]
-    }
+    st.session_state.custom_types = CATEGORY_OPTIONS.copy()
 if 'form_category' not in st.session_state:
     st.session_state.form_category = "Upper body"
 if 'type_options' not in st.session_state:
     st.session_state.type_options = st.session_state.custom_types["Upper body"]
 
-# Initialize Airtable tables
-wardrobe_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea',
-                       'appdgbGbEz1Dtynvg', 'wardrobe_data')
-combinations_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea',
-                           'appdgbGbEz1Dtynvg', 'combinations_data')
+# ---------------------------- AIRTABLE SETUP ----------------------------
+AIRTABLE_API_KEY = st.secrets["patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea"]
+AIRTABLE_BASE_ID = st.secrets["appdgbGbEz1Dtynvg"]
 
+wardrobe_table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, 'wardrobe_data')
+combinations_table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, 'combinations_data')
 
+# ---------------------------- UTILITIES ----------------------------
+def matches_filter(field_val, filters):
+    if isinstance(field_val, list):
+        return any(val in field_val for val in filters)
+    elif isinstance(field_val, str):
+        return any(val.strip() in field_val for val in filters)
+    return False
+
+# ---------------------------- DATA FUNCTIONS ----------------------------
 def load_data():
-    """Fetch data from Airtable instead of local CSVs."""
     wardrobe_records = wardrobe_table.all()
     combinations_records = combinations_table.all()
 
     wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records]) if wardrobe_records else pd.DataFrame()
-    combinations_df = pd.DataFrame(
-        [rec['fields'] for rec in combinations_records]) if combinations_records else pd.DataFrame()
+    combinations_df = pd.DataFrame([rec['fields'] for rec in combinations_records]) if combinations_records else pd.DataFrame()
 
-    # Load custom types from existing wardrobe data
     if not wardrobe_df.empty and 'Type' in wardrobe_df.columns and 'Category' in wardrobe_df.columns:
-        # Group types by category
         for category in wardrobe_df['Category'].unique():
             types = wardrobe_df[wardrobe_df['Category'] == category]['Type'].unique().tolist()
-            # Update custom types only if we found some
             if types:
-                # Merge with existing types without duplicates
                 if category in st.session_state.custom_types:
                     all_types = list(set(st.session_state.custom_types[category] + types))
                     st.session_state.custom_types[category] = sorted(all_types)
                 else:
                     st.session_state.custom_types[category] = sorted(types)
-
     return wardrobe_df, combinations_df
 
-
 def save_data(wardrobe_df, combinations_df):
-    """Save data to Airtable instead of CSV files."""
     if 'new_item' in st.session_state:
         new_item = st.session_state.new_item
-
-        # Remove any fields that don't exist in Airtable
-        # Ensure field names match exactly what's in Airtable
         row_dict = {}
         for k, v in new_item.items():
-            if k != 'TypeNumber' and pd.notna(v):  # Skip TypeNumber field
-                row_dict[k] = v
-
-        # Convert Style field from comma-separated string to list for Airtable multi-select
-        if 'Style' in row_dict and isinstance(row_dict['Style'], str):
-            row_dict['Style'] = [style.strip() for style in row_dict['Style'].split(',')]
-
-        # Color
-        if 'Color' in row_dict and isinstance(row_dict['Color'], str):
-            row_dict['Color'] = [color.strip() for color in row_dict['Color'].split(',')]
-
-
-        # Similarly for Season if it's also a multi-select field
-        if 'Season' in row_dict and isinstance(row_dict['Season'], str):
-            row_dict['Season'] = [season.strip() for season in row_dict['Season'].split(',')]
-
-        # Convert any numpy data types to Python native types
-        for key, value in row_dict.items():
-            if hasattr(value, 'item'):
-                row_dict[key] = value.item()
-
+            if k != 'TypeNumber' and pd.notna(v):
+                if isinstance(v, str) and k in ['Style', 'Season', 'Color']:
+                    row_dict[k] = [x.strip() for x in v.split(',')]
+                else:
+                    row_dict[k] = v.item() if hasattr(v, 'item') else v
         try:
             wardrobe_table.create(row_dict)
             st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
             del st.session_state.new_item
         except Exception as e:
             st.error(f"Error saving to Airtable: {str(e)}")
-            st.error(f"Problematic data: {row_dict}")  # Add this to see the exact data being sent
-            st.error("Check if all field names match your Airtable schema")
+            st.text(traceback.format_exc())
 
-    # For combinations
     if 'new_combination' in st.session_state:
         new_combination = st.session_state.new_combination
-
-        # Ensure we're using the correct field names for Airtable
-        row_dict = {}
-        for k, v in new_combination.items():
-            if pd.notna(v):
-                row_dict[k] = v
-
-        # Convert any numpy data types to Python native types
-        for key, value in row_dict.items():
-            if hasattr(value, 'item'):
-                row_dict[key] = value.item()
-
+        row_dict = {k: (v.item() if hasattr(v, 'item') else v) for k, v in new_combination.items() if pd.notna(v)}
         try:
             combinations_table.create(row_dict)
-            st.success(f"Saved rating for this combination!")
+            st.success("Saved rating for this combination!")
             del st.session_state.new_combination
-            st.session_state.show_rating = False  # Reset rating UI state
+            st.session_state.show_rating = False
         except Exception as e:
             st.error(f"Error saving combination to Airtable: {str(e)}")
-            st.error(f"Data being sent: {row_dict}")
+            st.text(traceback.format_exc())
 
-
-# Function to update type options based on selected category
 def update_type_options():
     category = st.session_state.category_select
     st.session_state.form_category = category
-    # Update the type options based on the selected category
-    if category in st.session_state.custom_types:
-        st.session_state.type_options = st.session_state.custom_types[category]
-    else:
-        st.session_state.type_options = []
+    st.session_state.type_options = st.session_state.custom_types.get(category, [])
 
-
-# Load data
+# ---------------------------- LOAD DATA ----------------------------
 wardrobe_df, combinations_df = load_data()
 
-# Sidebar navigation
+# ---------------------------- SIDEBAR NAVIGATION ----------------------------
 st.sidebar.title("wea-rCloth")
 page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Analysis", "About"])
 
