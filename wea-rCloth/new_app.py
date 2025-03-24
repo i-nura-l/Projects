@@ -103,7 +103,6 @@ def get_unique_values(df, column):
 
     return sorted(list(all_values))
 
-
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
     # Save new clothing item if available
@@ -111,14 +110,15 @@ def save_data(wardrobe_df, combinations_df):
         new_item = st.session_state.new_item
         row_dict = {}
         for key, value in new_item.items():
-            if key == 'TypeNumber':
-                continue
+            # If value is a list (e.g., multi-select fields)
             if isinstance(value, list):
-                if value:
+                if value:  # only add if list is not empty
                     row_dict[key] = value
             else:
+                # For non-list values, check if not missing
                 if pd.notna(value):
                     row_dict[key] = value
+
         try:
             wardrobe_table.create(row_dict)
             st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
@@ -138,16 +138,16 @@ def save_data(wardrobe_df, combinations_df):
             else:
                 if pd.notna(value):
                     row_dict[key] = value
-        st.write("Saving combination to Airtable with data:", row_dict)  # Debug output
+
         try:
-            response = combinations_table.create(row_dict)
-            st.write("Airtable response:", response)  # Debug output
+            combinations_table.create(row_dict)
             st.success("Saved rating for this combination!")
             del st.session_state.new_combination
             st.session_state.show_rating = False  # Reset rating UI state
         except Exception as e:
             st.error(f"Error saving combination to Airtable: {str(e)}")
             st.error(f"Data being sent: {row_dict}")
+
 
 # Function to update type options based on selected category
 def update_type_options():
@@ -232,7 +232,7 @@ if page == "Main":
                     st.error("No Upper Body items available!")
                 else:
                     upper = upper_df.sample(1)
-                    # Ensure Season and Style are valid strings; default to "Universal" if missing
+                    # Validate Season and Style fields; default to "Universal" if missing
                     upper_season_val = upper['Season'].values[0]
                     upper_season_str = (
                         upper_season_val if isinstance(upper_season_val, str) and pd.notna(upper_season_val)
@@ -242,12 +242,12 @@ if page == "Main":
                     upper_style_str = (upper_style_val if isinstance(upper_style_val, str) and pd.notna(upper_style_val)
                                        else "Universal")
 
-                    # Convert comma-separated string to a list (e.g., "Summer, Spring" -> ["Summer", "Spring"])
+                    # Convert comma-separated strings into lists (e.g., "Summer, Spring" -> ["Summer", "Spring"])
                     upper_seasons = [s.strip() for s in upper_season_str.split(',')]
                     upper_styles = [s.strip() for s in upper_style_str.split(',')]
 
 
-                    # Helper functions with error-checking
+                    # Helper functions for filtering
                     def matches_season(candidate_season_str, upper_seasons):
                         if not isinstance(candidate_season_str, str):
                             return False
@@ -274,14 +274,14 @@ if page == "Main":
                     footwear_filtered = footwear_df[
                         footwear_df['Season'].apply(lambda x: matches_season(x, upper_seasons))]
 
-                    # Fallback if no candidates after season filtering
+                    # Fallback if filtering by season yields no candidates
                     if lower_filtered.empty:
                         lower_filtered = lower_df
                     if footwear_filtered.empty:
                         footwear_filtered = footwear_df
 
                     # Step 3: Optionally enforce strict style matching
-                    enforce_style = True  # Set to False to disable strict style filtering
+                    enforce_style = True  # Set to False if you want to disable style filtering
                     if enforce_style:
                         lower_filtered = lower_filtered[
                             lower_filtered['Style'].apply(lambda x: matches_style(x, upper_styles))]
@@ -299,9 +299,9 @@ if page == "Main":
                     lower = lower_filtered.sample(1)
                     footwear = footwear_filtered.sample(1)
 
-                    # Generate a new Combination_ID (e.g., C001, C002, etc.)
-                    if not combinations_df.empty and 'Combination_ID' in combinations_df.columns:
-                        codes = [code for code in combinations_df['Combination_ID']
+                    # Generate a new Combination ID in the format "C001", "C002", etc.
+                    if not combinations_df.empty and 'Combination ID' in combinations_df.columns:
+                        codes = [code for code in combinations_df['Combination ID']
                                  if isinstance(code, str) and code.startswith('C')]
                         if codes:
                             max_num = max(int(code[1:]) for code in codes)
@@ -313,55 +313,56 @@ if page == "Main":
                     combination_id = f"C{new_num:03d}"
 
                     # Save the generated combination in session state.
-                    # Note: Season_Match and Style_Match are sent as lists for Airtable multi-select fields.
+                    # Note: Send multi-select fields as lists.
                     st.session_state.current_combination = {
-                        'Combination_ID': combination_id,
-                        'Upper_Body': upper['Model'].values[0],
-                        'Lower_Body': lower['Model'].values[0],
-                        'Footwear': footwear['Model'].values[0],
-                        'Season_Match': upper_seasons,
-                        'Style_Match': upper_styles
+                        "Combination ID": combination_id,
+                        "Upper Body": upper["Model"].values[0],
+                        "Lower Body": lower["Model"].values[0],
+                        "Footwear": footwear["Model"].values[0],
+                        "Season Match": upper_seasons,  # Multi-select field as list
+                        "Style Match": upper_styles  # Multi-select field as list
                     }
                     st.session_state.show_rating = True
         except Exception as e:
             st.error("Error generating outfit combination: " + str(e))
 
-        # Display combination and rating form if available
+        # Display the combination and rating form if available
         if st.session_state.show_rating and st.session_state.current_combination:
             combination = st.session_state.current_combination
 
-            upper_details = wardrobe_df[wardrobe_df['Model'] == combination['Upper_Body']]
-            lower_details = wardrobe_df[wardrobe_df['Model'] == combination['Lower_Body']]
-            footwear_details = wardrobe_df[wardrobe_df['Model'] == combination['Footwear']]
+            upper_details = wardrobe_df[wardrobe_df["Model"] == combination["Upper Body"]]
+            lower_details = wardrobe_df[wardrobe_df["Model"] == combination["Lower Body"]]
+            footwear_details = wardrobe_df[wardrobe_df["Model"] == combination["Footwear"]]
 
             st.subheader("Your Outfit Combination:")
             if not upper_details.empty:
                 st.write(f"**Upper Body:** {upper_details['Model'].values[0]} - {upper_details['Type'].values[0]} "
                          f"({upper_details['Color'].values[0]})")
             else:
-                st.write(f"**Upper Body:** {combination['Upper_Body']}")
+                st.write(f"**Upper Body:** {combination['Upper Body']}")
             if not lower_details.empty:
                 st.write(f"**Lower Body:** {lower_details['Model'].values[0]} - {lower_details['Type'].values[0]} "
                          f"({lower_details['Color'].values[0]})")
             else:
-                st.write(f"**Lower Body:** {combination['Lower_Body']}")
+                st.write(f"**Lower Body:** {combination['Lower Body']}")
             if not footwear_details.empty:
                 st.write(f"**Footwear:** {footwear_details['Model'].values[0]} - {footwear_details['Type'].values[0]} "
                          f"({footwear_details['Color'].values[0]})")
             else:
                 st.write(f"**Footwear:** {combination['Footwear']}")
 
-            st.write(f"**Season Compatibility:** {', '.join(combination['Season_Match'])}")
-            st.write(f"**Style Compatibility:** {', '.join(combination['Style_Match'])}")
+            st.write(f"**Season Compatibility:** {', '.join(combination['Season Match'])}")
+            st.write(f"**Style Compatibility:** {', '.join(combination['Style Match'])}")
 
             with st.form("rating_form"):
                 rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
                 save_rating = st.form_submit_button("Save Rating")
                 if save_rating:
                     new_combination = combination.copy()
-                    new_combination['Rating'] = rating
+                    new_combination["Rating"] = rating  # Rating as a number
                     st.session_state.new_combination = new_combination
                     save_data(wardrobe_df, combinations_df)
+
 
 
 elif page == "Wardrobe":
