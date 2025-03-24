@@ -110,9 +110,6 @@ def save_data(wardrobe_df, combinations_df):
         new_item = st.session_state.new_item
         row_dict = {}
         for key, value in new_item.items():
-            # Skip the 'TypeNumber' field
-            if key == 'TypeNumber':
-                continue
             # If value is a list (e.g., multi-select fields)
             if isinstance(value, list):
                 if value:  # only add if list is not empty
