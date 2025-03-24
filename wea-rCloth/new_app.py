@@ -159,8 +159,10 @@ def update_type_options():
         st.session_state.type_options = []
 
 def get_record_id_by_model(model_name):
-    """Search for a record in wardrobe_table by the 'Model' field and return its Airtable record ID."""
-    results = wardrobe_table.search("Model", model_name)
+    # Escape single quotes in the model name
+    escaped_model = model_name.replace("'", "\\'")
+    formula = "({Model} = '{}')".format(escaped_model)
+    results = wardrobe_table.all(filterByFormula=formula)
     if results:
         return results[0]["id"]
     return None
