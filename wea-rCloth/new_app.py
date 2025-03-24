@@ -239,28 +239,30 @@ if page == "Main":
                 lower = wardrobe_df[wardrobe_df['Category'] == 'Lower body'].sample(1)
                 footwear = wardrobe_df[wardrobe_df['Category'] == 'Footwear'].sample(1)
 
-                # Determine season compatibility
+                # Determine season compatibility using full names
                 seasons = []
                 for item in [upper, lower, footwear]:
-                    if 'Season' in item and item['Season'].values[0] != 'Universal':
-                        seasons.append(item['Season'].values[0][0])  # First letter of season
-
-                # Create combined season code
+                    season_val = item['Season'].values[0]
+                    if season_val != 'Universal':
+                        seasons.append(season_val)
                 if not seasons:
-                    combined_season = 'U'  # Universal
+                    combined_season = 'Universal'
                 else:
-                    combined_season = ''.join(sorted(set(seasons)))
+                    unique_seasons = sorted(set(seasons))
+                    # If all items match strictly, it will just be one value
+                    combined_season = ", ".join(unique_seasons)
 
-                # Determine combined style
+                # Determine style compatibility using full names
                 styles = []
                 for item in [upper, lower, footwear]:
-                    if 'Style' in item and item['Style'].values[0] != 'Universal':
-                        styles.append(item['Style'].values[0][0].lower())  # First letter of style
-
+                    style_val = item['Style'].values[0]
+                    if style_val != 'Universal':
+                        styles.append(style_val)
                 if not styles:
-                    combined_style = 'u'  # Universal
+                    combined_style = 'Universal'
                 else:
-                    combined_style = ''.join(sorted(set(styles)))
+                    unique_styles = sorted(set(styles))
+                    combined_style = ", ".join(unique_styles)
 
                 # Create combination ID
                 combination_id = f"{upper['Model'].values[0]}_{lower['Model'].values[0]}_{footwear['Model'].values[0]}"
