@@ -142,9 +142,9 @@ if page == "Main":
             # Use the stored category value inside the form
             cloth_type = st.selectbox("Type", st.session_state.type_options)
 
-            style = st.selectbox("Style", ["Casual", "Formal", "Trendy", "Universal"])
+            style = st.multiselect("Style", ["Casual", "Formal", "Trendy", "Universal"])
+            season = st.multiselect("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"])
             color = st.text_input("Color")
-            season = st.selectbox("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"])
 
             # Get the number of items of this type
             existing_items = wardrobe_df[(wardrobe_df['Category'] == st.session_state.form_category) &
@@ -167,10 +167,11 @@ if page == "Main":
                     'Model': model,
                     'Category': st.session_state.form_category,
                     'Type': cloth_type,
-                    'Style': style,
-                    'Color': color,
-                    'Season': season
+                    'Style': style,  # already a list
+                    'Color': color,  # keep as string if Color is a text field
+                    'Season': season  # already a list
                 }
+
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
                 st.session_state.new_item = new_item
                 save_data(wardrobe_df, combinations_df)
