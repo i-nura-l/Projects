@@ -141,16 +141,16 @@ def save_data(wardrobe_df, combinations_df):
             else:
                 if pd.notna(value):
                     row_dict[key] = value
-
+        st.write("Saving combination to Airtable with data:", row_dict)  # Debug output
         try:
-            combinations_table.create(row_dict)
+            response = combinations_table.create(row_dict)
+            st.write("Airtable response:", response)  # Log the API response
             st.success("Saved rating for this combination!")
             del st.session_state.new_combination
             st.session_state.show_rating = False  # Reset rating UI state
         except Exception as e:
             st.error(f"Error saving combination to Airtable: {str(e)}")
             st.error(f"Data being sent: {row_dict}")
-
 
 # Function to update type options based on selected category
 def update_type_options():
