@@ -487,66 +487,75 @@ elif page == "Combinations":
 
 
 elif page == "Data Cleaning":
-    st.title("Data Cleaning: Handle Empty Spaces")
+    st.title("Data Cleaning: Handle Missing Values")
 
-    st.subheader("Wardrobe Data")
-    # Show a summary of missing values in wardrobe_df
-    missing_wardrobe = wardrobe_df.isnull().sum()
-    st.write("Missing values by column:")
-    st.dataframe(missing_wardrobe.to_frame(name="Missing Count"))
+    st.subheader("Wardrobe Data with Missing Values")
+    # Filter wardrobe_df for rows with any missing values.
+    missing_wardrobe_df = wardrobe_df[wardrobe_df.isnull().any(axis=1)]
 
-    st.write("Preview of Wardrobe Data:")
-    st.dataframe(wardrobe_df.head())
-
-    # Let the user choose an action for wardrobe data
-    wardrobe_action = st.radio(
-        "Wardrobe: How do you want to handle empty spaces?",
-        ("Do nothing", "Fill missing values", "Drop rows with missing values"),
-        key="wardrobe_action"
-    )
-
-    if wardrobe_action == "Fill missing values":
-        fill_value = st.text_input("Enter fill value for missing text fields", "Unknown", key="wardrobe_fill")
-        cleaned_wardrobe = wardrobe_df.fillna(fill_value)
-        st.write("Cleaned Wardrobe Data (missing values filled):")
-        st.dataframe(cleaned_wardrobe)
-    elif wardrobe_action == "Drop rows with missing values":
-        cleaned_wardrobe = wardrobe_df.dropna()
-        st.write("Cleaned Wardrobe Data (rows with missing values dropped):")
-        st.dataframe(cleaned_wardrobe)
+    if missing_wardrobe_df.empty:
+        st.write("No missing values found in the Wardrobe data.")
     else:
-        st.write("No changes applied to Wardrobe data.")
+        st.write(
+            "The following records have missing values. For each record, fill in the missing fields or mark the record for deletion.")
 
-    st.markdown("---")
+        # We'll store user inputs here: a dict mapping record IDs to update data.
+        updated_records = {}
 
-    st.subheader("Combination Data")
-    # Show a summary of missing values in combinations_df
-    missing_combinations = combinations_df.isnull().sum()
-    st.write("Missing values by column:")
-    st.dataframe(missing_combinations.to_frame(name="Missing Count"))
+        # Iterate over each row that has missing values.
+        for idx, row in missing_wardrobe_df.iterrows():
+            # Display record information (including record id)
+            record_id = row.get("id", f"row_{idx}")
+            st.markdown(f"**Record ID: {record_id}**")
+            st.write(row)
 
-    st.write("Preview of Combination Data:")
-    st.dataframe(combinations_df.head())
+            # For every column that is missing (or empty), display an input widget.
+            for col in wardrobe_df.columns:
+                # Skip the 'id' column.
+                if col == "id":
+                    continue
+                # Check if the value is missing (NaN or empty string)
+                if pd.isna(row[col]) or row[col] == "":
+                    # For multi-select fields like Style or Season, get unique options
+                    if col in ["Style", "Season"]:
+                        # Get unique non-empty options from the full dataframe.
+                        options = [opt for opt in get_unique_values(wardrobe_df, col) if opt]
+                        fill_value = st.multiselect(f"Fill missing {col} for record {record_id}", options,
+                                                    key=f"{record_id}_{col}")
+                    else:
+                        # For other columns use text input.
+                        fill_value = st.text_input(f"Fill missing {col} for record {record_id}",
+                                                   key=f"{record_id}_{col}")
 
-    # Let the user choose an action for combinations data
-    combinations_action = st.radio(
-        "Combinations: How do you want to handle empty spaces?",
-        ("Do nothing", "Fill missing values", "Drop rows with missing values"),
-        key="combos_action"
-    )
+                    # Save the user's input into our updates dictionary.
+                    if record_id not in updated_records:
+                        updated_records[record_id] = {}
+                    updated_records[record_id][col] = fill_value
 
-    if combinations_action == "Fill missing values":
-        fill_value_combo = st.text_input("Enter fill value for missing text fields in combinations", "Unknown",
-                                         key="combos_fill")
-        cleaned_combinations = combinations_df.fillna(fill_value_combo)
-        st.write("Cleaned Combination Data (missing values filled):")
-        st.dataframe(cleaned_combinations)
-    elif combinations_action == "Drop rows with missing values":
-        cleaned_combinations = combinations_df.dropna()
-        st.write("Cleaned Combination Data (rows with missing values dropped):")
-        st.dataframe(cleaned_combinations)
-    else:
-        st.write("No changes applied to Combination data.")
+            # Provide a checkbox to mark the entire record for deletion.
+            drop = st.checkbox(f"Mark record {record_id} for deletion", key=f"drop_{record_id}")
+            if drop:
+                updated_records[record_id] = "DROP"
+
+            st.markdown("---")
+
+        if st.button("Submit Changes for Wardrobe"):
+            for record_id, update in updated_records.items():
+                if update == "DROP":
+                    try:
+                        wardrobe_table.delete(record_id)
+                        st.write(f"Deleted record {record_id}")
+                    except Exception as e:
+                        st.error(f"Error deleting record {record_id}: {e}")
+                else:
+                    try:
+                        response = wardrobe_table.update(record_id, update)
+                        st.write(f"Updated record {record_id}: {response}")
+                    except Exception as e:
+                        st.error(f"Error updating record {record_id}: {e}")
+            # Refresh data after updates
+            wardrobe_df, combinations_df = load_data()
+            st.success("Changes submitted and data refreshed.")
 
 
 elif page == "Analysis":
