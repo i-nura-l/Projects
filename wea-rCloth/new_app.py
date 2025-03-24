@@ -103,6 +103,7 @@ def get_unique_values(df, column):
 
     return sorted(list(all_values))
 
+
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
     # Save new clothing item if available
@@ -110,18 +111,14 @@ def save_data(wardrobe_df, combinations_df):
         new_item = st.session_state.new_item
         row_dict = {}
         for key, value in new_item.items():
-            # Skip the 'TypeNumber' field
             if key == 'TypeNumber':
                 continue
-            # If value is a list (e.g., multi-select fields)
             if isinstance(value, list):
-                if value:  # only add if list is not empty
+                if value:
                     row_dict[key] = value
             else:
-                # For non-list values, check if not missing
                 if pd.notna(value):
                     row_dict[key] = value
-
         try:
             wardrobe_table.create(row_dict)
             st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
@@ -141,7 +138,7 @@ def save_data(wardrobe_df, combinations_df):
             else:
                 if pd.notna(value):
                     row_dict[key] = value
-
+        st.write("Saving combination to Airtable with data:", row_dict)  # Debug output
         try:
             combinations_table.create(row_dict)
             st.success("Saved rating for this combination!")
@@ -283,7 +280,7 @@ if page == "Main":
                         footwear_filtered = footwear_df
 
                     # Step 3: Optionally enforce strict style matching
-                    enforce_style = True  # Set to False to disable strict style matching
+                    enforce_style = True  # Change to False to disable strict style matching
                     if enforce_style:
                         lower_filtered = lower_filtered[
                             lower_filtered['Style'].apply(lambda x: matches_style(x, upper_styles))]
@@ -301,10 +298,10 @@ if page == "Main":
                     lower = lower_filtered.sample(1)
                     footwear = footwear_filtered.sample(1)
 
-                    # Generate a new Combination_ID based on previous combinations
+                    # Generate a new Combination_ID (C001, C002, etc.)
                     if not combinations_df.empty and 'Combination_ID' in combinations_df.columns:
-                        codes = [code for code in combinations_df['Combination_ID'] if
-                                 isinstance(code, str) and code.startswith('C')]
+                        codes = [code for code in combinations_df['Combination_ID']
+                                 if isinstance(code, str) and code.startswith('C')]
                         if codes:
                             max_num = max(int(code[1:]) for code in codes)
                             new_num = max_num + 1
@@ -314,7 +311,8 @@ if page == "Main":
                         new_num = 1
                     combination_id = f"C{new_num:03d}"
 
-                    # Save the combination in session state; send Season_Match and Style_Match as lists
+                    # Save the generated combination in session state.
+                    # Note: Season_Match and Style_Match are sent as lists for Airtable multi-select.
                     st.session_state.current_combination = {
                         'Combination_ID': combination_id,
                         'Upper_Body': upper['Model'].values[0],
@@ -327,52 +325,43 @@ if page == "Main":
         except Exception as e:
             st.error("Error generating outfit combination: " + str(e))
 
-        # Display the combination if available
+        # Display the combination and rating form if available
         if st.session_state.show_rating and st.session_state.current_combination:
-
             combination = st.session_state.current_combination
 
-            # Get item details
             upper_details = wardrobe_df[wardrobe_df['Model'] == combination['Upper_Body']]
             lower_details = wardrobe_df[wardrobe_df['Model'] == combination['Lower_Body']]
             footwear_details = wardrobe_df[wardrobe_df['Model'] == combination['Footwear']]
 
-            # Display the combination
             st.subheader("Your Outfit Combination:")
-
             if not upper_details.empty:
                 st.write(
                     f"**Upper Body:** {upper_details['Model'].values[0]} - {upper_details['Type'].values[0]} ({upper_details['Color'].values[0]})")
             else:
                 st.write(f"**Upper Body:** {combination['Upper_Body']}")
-
             if not lower_details.empty:
                 st.write(
                     f"**Lower Body:** {lower_details['Model'].values[0]} - {lower_details['Type'].values[0]} ({lower_details['Color'].values[0]})")
             else:
                 st.write(f"**Lower Body:** {combination['Lower_Body']}")
-
             if not footwear_details.empty:
                 st.write(
                     f"**Footwear:** {footwear_details['Model'].values[0]} - {footwear_details['Type'].values[0]} ({footwear_details['Color'].values[0]})")
             else:
                 st.write(f"**Footwear:** {combination['Footwear']}")
 
-            st.write(f"**Season Compatibility:** {combination['Season_Match']}")
-            st.write(f"**Style Compatibility:** {combination['Style_Match']}")
+            st.write(f"**Season Compatibility:** {', '.join(combination['Season_Match'])}")
+            st.write(f"**Style Compatibility:** {', '.join(combination['Style_Match'])}")
 
-            # Rating section with separate form
             with st.form("rating_form"):
                 rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
                 save_rating = st.form_submit_button("Save Rating")
-
                 if save_rating:
-                    # Add rating to the combination
                     new_combination = combination.copy()
                     new_combination['Rating'] = rating
-
                     st.session_state.new_combination = new_combination
                     save_data(wardrobe_df, combinations_df)
+
 
 elif page == "Wardrobe":
     st.title("Your Wardrobe")
