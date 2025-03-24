@@ -296,13 +296,21 @@ elif page == "Wardrobe":
 
     # Filter options
     st.sidebar.subheader("Filter Options")
-    filter_category = st.sidebar.multiselect("Category",
-                                             wardrobe_df['Category'].unique().tolist() if not wardrobe_df.empty else [])
-    filter_style = st.sidebar.multiselect("Style",
-                                          wardrobe_df['Style'].unique().tolist() if not wardrobe_df.empty else [])
-    filter_season = st.sidebar.multiselect("Season",
-                                           wardrobe_df['Season'].unique().tolist() if not wardrobe_df.empty else [])
 
+    filter_category = st.sidebar.multiselect(
+        "Category",
+        wardrobe_df['Category'].unique().tolist() if not wardrobe_df.empty and 'Category' in wardrobe_df.columns else []
+    )
+
+    filter_style = st.sidebar.multiselect(
+        "Style",
+        wardrobe_df['Style'].unique().tolist() if not wardrobe_df.empty and 'Style' in wardrobe_df.columns else []
+    )
+
+    filter_season = st.sidebar.multiselect(
+        "Season",
+        wardrobe_df['Season'].unique().tolist() if not wardrobe_df.empty and 'Season' in wardrobe_df.columns else []
+    )
     # Apply filters
     filtered_df = wardrobe_df.copy()
     if filter_category:
