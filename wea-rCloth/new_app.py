@@ -232,22 +232,21 @@ if page == "Main":
                     st.error("No Upper Body items available!")
                 else:
                     upper = upper_df.sample(1)
-                    # Validate Season and Style fields; default to "Universal" if missing
+                    # Ensure Season and Style are valid strings; default to "Universal" if missing
                     upper_season_val = upper['Season'].values[0]
-                    upper_season_str = (
-                        upper_season_val if isinstance(upper_season_val, str) and pd.notna(upper_season_val)
-                        else "Universal")
+                    upper_season_str = upper_season_val if isinstance(upper_season_val, str) and pd.notna(
+                        upper_season_val) else "Universal"
 
                     upper_style_val = upper['Style'].values[0]
-                    upper_style_str = (upper_style_val if isinstance(upper_style_val, str) and pd.notna(upper_style_val)
-                                       else "Universal")
+                    upper_style_str = upper_style_val if isinstance(upper_style_val, str) and pd.notna(
+                        upper_style_val) else "Universal"
 
-                    # Convert comma-separated strings into lists (e.g., "Summer, Spring" -> ["Summer", "Spring"])
+                    # Convert comma-separated string to a list (e.g., "Summer, Spring" -> ["Summer", "Spring"])
                     upper_seasons = [s.strip() for s in upper_season_str.split(',')]
                     upper_styles = [s.strip() for s in upper_style_str.split(',')]
 
 
-                    # Helper functions for filtering
+                    # Helper functions with error-checking
                     def matches_season(candidate_season_str, upper_seasons):
                         if not isinstance(candidate_season_str, str):
                             return False
@@ -274,14 +273,14 @@ if page == "Main":
                     footwear_filtered = footwear_df[
                         footwear_df['Season'].apply(lambda x: matches_season(x, upper_seasons))]
 
-                    # Fallback if filtering by season yields no candidates
+                    # Fallback if no candidates after season filtering
                     if lower_filtered.empty:
                         lower_filtered = lower_df
                     if footwear_filtered.empty:
                         footwear_filtered = footwear_df
 
                     # Step 3: Optionally enforce strict style matching
-                    enforce_style = True  # Set to False if you want to disable style filtering
+                    enforce_style = True  # Change to False to disable strict style matching
                     if enforce_style:
                         lower_filtered = lower_filtered[
                             lower_filtered['Style'].apply(lambda x: matches_style(x, upper_styles))]
@@ -299,7 +298,7 @@ if page == "Main":
                     lower = lower_filtered.sample(1)
                     footwear = footwear_filtered.sample(1)
 
-                    # Generate a new Combination_ID in the format "C001", "C002", etc.
+                    # Generate a new Combination_ID (C001, C002, etc.)
                     if not combinations_df.empty and 'Combination_ID' in combinations_df.columns:
                         codes = [code for code in combinations_df['Combination_ID']
                                  if isinstance(code, str) and code.startswith('C')]
@@ -313,14 +312,14 @@ if page == "Main":
                     combination_id = f"C{new_num:03d}"
 
                     # Save the generated combination in session state.
-                    # Note: Send multi-select fields as lists.
+                    # Note: Season_Match and Style_Match are sent as lists for Airtable multi-select.
                     st.session_state.current_combination = {
-                        "Combination_ID": combination_id,
-                        "Upper_Body": upper["Model"].values[0],
-                        "Lower_Body": lower["Model"].values[0],
-                        "Footwear": footwear["Model"].values[0],
-                        "Season_Match": upper_seasons,  # Multi-select field as list
-                        "Style_Match": upper_styles  # Multi-select field as list
+                        'Combination_ID': combination_id,
+                        'Upper_Body': upper['Model'].values[0],
+                        'Lower_Body': lower['Model'].values[0],
+                        'Footwear': footwear['Model'].values[0],
+                        'Season_Match': upper_seasons,
+                        'Style_Match': upper_styles
                     }
                     st.session_state.show_rating = True
         except Exception as e:
@@ -330,24 +329,24 @@ if page == "Main":
         if st.session_state.show_rating and st.session_state.current_combination:
             combination = st.session_state.current_combination
 
-            upper_details = wardrobe_df[wardrobe_df["Model"] == combination["Upper Body"]]
-            lower_details = wardrobe_df[wardrobe_df["Model"] == combination["Lower Body"]]
-            footwear_details = wardrobe_df[wardrobe_df["Model"] == combination["Footwear"]]
+            upper_details = wardrobe_df[wardrobe_df['Model'] == combination['Upper_Body']]
+            lower_details = wardrobe_df[wardrobe_df['Model'] == combination['Lower_Body']]
+            footwear_details = wardrobe_df[wardrobe_df['Model'] == combination['Footwear']]
 
             st.subheader("Your Outfit Combination:")
             if not upper_details.empty:
-                st.write(f"**Upper Body:** {upper_details['Model'].values[0]} - {upper_details['Type'].values[0]} "
-                         f"({upper_details['Color'].values[0]})")
+                st.write(
+                    f"**Upper Body:** {upper_details['Model'].values[0]} - {upper_details['Type'].values[0]} ({upper_details['Color'].values[0]})")
             else:
-                st.write(f"**Upper Body:** {combination['Upper Body']}")
+                st.write(f"**Upper Body:** {combination['Upper_Body']}")
             if not lower_details.empty:
-                st.write(f"**Lower Body:** {lower_details['Model'].values[0]} - {lower_details['Type'].values[0]} "
-                         f"({lower_details['Color'].values[0]})")
+                st.write(
+                    f"**Lower Body:** {lower_details['Model'].values[0]} - {lower_details['Type'].values[0]} ({lower_details['Color'].values[0]})")
             else:
-                st.write(f"**Lower Body:** {combination['Lower Body']}")
+                st.write(f"**Lower Body:** {combination['Lower_Body']}")
             if not footwear_details.empty:
-                st.write(f"**Footwear:** {footwear_details['Model'].values[0]} - {footwear_details['Type'].values[0]} "
-                         f"({footwear_details['Color'].values[0]})")
+                st.write(
+                    f"**Footwear:** {footwear_details['Model'].values[0]} - {footwear_details['Type'].values[0]} ({footwear_details['Color'].values[0]})")
             else:
                 st.write(f"**Footwear:** {combination['Footwear']}")
 
@@ -359,10 +358,9 @@ if page == "Main":
                 save_rating = st.form_submit_button("Save Rating")
                 if save_rating:
                     new_combination = combination.copy()
-                    new_combination["Rating"] = rating  # Rating as a number
+                    new_combination['Rating'] = rating
                     st.session_state.new_combination = new_combination
                     save_data(wardrobe_df, combinations_df)
-
 
 
 elif page == "Wardrobe":
