@@ -164,7 +164,7 @@ wardrobe_df, combinations_df = load_data()
 
 # Sidebar navigation
 st.sidebar.title("wea-rCloth")
-page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Data Cleaning", "Analysis", "About"])
+page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "About"])
 
 if page == "Main":
     st.title("wea-rCloth - Your Smart Wardrobe Assistant")
@@ -485,68 +485,6 @@ elif page == "Combinations":
     else:
         st.write("No combination records available.")
 
-
-elif page == "Data Cleaning":
-    st.title("Data Cleaning: Handle Empty Spaces")
-
-    st.subheader("Wardrobe Data")
-    # Show a summary of missing values in wardrobe_df
-    missing_wardrobe = wardrobe_df.isnull().sum()
-    st.write("Missing values by column:")
-    st.dataframe(missing_wardrobe.to_frame(name="Missing Count"))
-
-    st.write("Preview of Wardrobe Data:")
-    st.dataframe(wardrobe_df.head())
-
-    # Let the user choose an action for wardrobe data
-    wardrobe_action = st.radio(
-        "Wardrobe: How do you want to handle empty spaces?",
-        ("Do nothing", "Fill missing values", "Drop rows with missing values"),
-        key="wardrobe_action"
-    )
-
-    if wardrobe_action == "Fill missing values":
-        fill_value = st.text_input("Enter fill value for missing text fields", "Unknown", key="wardrobe_fill")
-        cleaned_wardrobe = wardrobe_df.fillna(fill_value)
-        st.write("Cleaned Wardrobe Data (missing values filled):")
-        st.dataframe(cleaned_wardrobe)
-    elif wardrobe_action == "Drop rows with missing values":
-        cleaned_wardrobe = wardrobe_df.dropna()
-        st.write("Cleaned Wardrobe Data (rows with missing values dropped):")
-        st.dataframe(cleaned_wardrobe)
-    else:
-        st.write("No changes applied to Wardrobe data.")
-
-    st.markdown("---")
-
-    st.subheader("Combination Data")
-    # Show a summary of missing values in combinations_df
-    missing_combinations = combinations_df.isnull().sum()
-    st.write("Missing values by column:")
-    st.dataframe(missing_combinations.to_frame(name="Missing Count"))
-
-    st.write("Preview of Combination Data:")
-    st.dataframe(combinations_df.head())
-
-    # Let the user choose an action for combinations data
-    combinations_action = st.radio(
-        "Combinations: How do you want to handle empty spaces?",
-        ("Do nothing", "Fill missing values", "Drop rows with missing values"),
-        key="combos_action"
-    )
-
-    if combinations_action == "Fill missing values":
-        fill_value_combo = st.text_input("Enter fill value for missing text fields in combinations", "Unknown",
-                                         key="combos_fill")
-        cleaned_combinations = combinations_df.fillna(fill_value_combo)
-        st.write("Cleaned Combination Data (missing values filled):")
-        st.dataframe(cleaned_combinations)
-    elif combinations_action == "Drop rows with missing values":
-        cleaned_combinations = combinations_df.dropna()
-        st.write("Cleaned Combination Data (rows with missing values dropped):")
-        st.dataframe(cleaned_combinations)
-    else:
-        st.write("No changes applied to Combination data.")
 
 
 elif page == "Analysis":
