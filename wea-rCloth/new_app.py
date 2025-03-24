@@ -53,7 +53,6 @@ def load_data():
     wardrobe_records = wardrobe_table.all()
     combinations_records = combinations_table.all()
 
-    # Create DataFrames from records
     loaded_wardrobe_df = pd.DataFrame(
         [rec['fields'] for rec in wardrobe_records if 'fields' in rec and rec['fields']]
     ) if wardrobe_records else pd.DataFrame()
@@ -62,7 +61,6 @@ def load_data():
         [{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]
     ) if combinations_records else pd.DataFrame()
 
-    # Reset index to start from 1
     if not loaded_wardrobe_df.empty:
         loaded_wardrobe_df = loaded_wardrobe_df.reset_index(drop=True)
         loaded_wardrobe_df.index = loaded_wardrobe_df.index + 1
@@ -70,14 +68,15 @@ def load_data():
     if not loaded_combinations_df.empty:
         loaded_combinations_df = loaded_combinations_df.reset_index(drop=True)
         loaded_combinations_df.index = loaded_combinations_df.index + 1
+        # Remove the 'id' column so it is not displayed in the app
+        if 'id' in loaded_combinations_df.columns:
+            loaded_combinations_df = loaded_combinations_df.drop(columns=['id'])
 
-    # Ensure all expected columns exist
     expected_columns = ['Model', 'Category', 'Type', 'Style', 'Color', 'Season']
     for col in expected_columns:
         if col not in loaded_wardrobe_df.columns:
             loaded_wardrobe_df[col] = None
 
-    # Convert multi-select fields to string representation if needed
     multi_select_columns = ['Style', 'Season']
     for col in multi_select_columns:
         if col in loaded_wardrobe_df.columns:
