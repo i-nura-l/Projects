@@ -103,7 +103,6 @@ def get_unique_values(df, column):
 
     return sorted(list(all_values))
 
-
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
     # Save new clothing item if available
@@ -111,14 +110,18 @@ def save_data(wardrobe_df, combinations_df):
         new_item = st.session_state.new_item
         row_dict = {}
         for key, value in new_item.items():
+            # Skip the 'TypeNumber' field
             if key == 'TypeNumber':
                 continue
+            # If value is a list (e.g., multi-select fields)
             if isinstance(value, list):
-                if value:
+                if value:  # only add if list is not empty
                     row_dict[key] = value
             else:
+                # For non-list values, check if not missing
                 if pd.notna(value):
                     row_dict[key] = value
+
         try:
             wardrobe_table.create(row_dict)
             st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
@@ -138,7 +141,7 @@ def save_data(wardrobe_df, combinations_df):
             else:
                 if pd.notna(value):
                     row_dict[key] = value
-        st.write("Saving combination to Airtable with data:", row_dict)  # Debug output
+
         try:
             combinations_table.create(row_dict)
             st.success("Saved rating for this combination!")
