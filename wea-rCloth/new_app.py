@@ -38,8 +38,11 @@ if 'type_options' not in st.session_state:
     st.session_state.type_options = st.session_state.custom_types["Upper body"]
 
 # ---------------------------- AIRTABLE SETUP ----------------------------
-AIRTABLE_API_KEY = st.secrets["patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea"]
-AIRTABLE_BASE_ID = st.secrets["appdgbGbEz1Dtynvg"]
+AIRTABLE_API_KEY = 'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea'
+AIRTABLE_BASE_ID = 'appdgbGbEz1Dtynvg'
+
+AIRTABLE_API_KEY = st.secrets["AIRTABLE_API_KEY"]
+AIRTABLE_BASE_ID = st.secrets["AIRTABLE_BASE_ID"]
 
 wardrobe_table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, 'wardrobe_data')
 combinations_table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, 'combinations_data')
