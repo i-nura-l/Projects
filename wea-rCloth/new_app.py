@@ -43,35 +43,35 @@ combinations_table = Table('patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef
 
 
 def load_data():
-    """Fetch data from Airtable instead of local CSVs."""
     wardrobe_records = wardrobe_table.all()
     combinations_records = combinations_table.all()
 
-    # Create DataFrames from records
-    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if
-                                'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
-    combinations_df = pd.DataFrame([{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
+    wardrobe_df = pd.DataFrame(
+        [{'id': rec['id'], **rec['fields']} for rec in wardrobe_records if 'fields' in rec and rec['fields']]
+    ) if wardrobe_records else pd.DataFrame()
+
+    combinations_df = pd.DataFrame(
+        [{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]
+    ) if combinations_records else pd.DataFrame()
 
     # Reset index to start from 1
     if not wardrobe_df.empty:
         wardrobe_df = wardrobe_df.reset_index(drop=True)
         wardrobe_df.index = wardrobe_df.index + 1
-
     if not combinations_df.empty:
         combinations_df = combinations_df.reset_index(drop=True)
         combinations_df.index = combinations_df.index + 1
 
-    # Ensure all expected columns exist
+    # Ensure expected columns exist in wardrobe_df
     expected_columns = ['Model', 'Category', 'Type', 'Style', 'Color', 'Season']
     for col in expected_columns:
         if col not in wardrobe_df.columns:
             wardrobe_df[col] = None
 
-    # Convert multi-select fields to string representation if needed
+    # Convert multi-select fields to strings if needed
     multi_select_columns = ['Style', 'Season']
     for col in multi_select_columns:
         if col in wardrobe_df.columns:
-            # Convert lists to strings if they are lists
             wardrobe_df[col] = wardrobe_df[col].apply(
                 lambda x: ', '.join(x) if isinstance(x, list) else x
             )
@@ -499,48 +499,46 @@ elif page == "Data Cleaning":
         st.write(
             "The following records have missing values. For each record, fill in the missing fields or mark the record for deletion.")
 
-        # We'll store user inputs here: a dict mapping record IDs to update data.
+        # Dictionary to store user inputs for updates.
         updated_records = {}
 
-        # Iterate over each row that has missing values.
+        # Iterate over each row with missing values.
         for idx, row in missing_wardrobe_df.iterrows():
-            # Display record information (including record id)
+            # Use the actual Airtable ID if available; otherwise, fallback (which won't be deletable).
             record_id = row.get("id", f"row_{idx}")
             st.markdown(f"**Record ID: {record_id}**")
             st.write(row)
 
-            # For every column that is missing (or empty), display an input widget.
+            # For every column with missing data, show input.
             for col in wardrobe_df.columns:
-                # Skip the 'id' column.
                 if col == "id":
                     continue
-                # Check if the value is missing (NaN or empty string)
                 if pd.isna(row[col]) or row[col] == "":
-                    # For multi-select fields like Style or Season, get unique options
                     if col in ["Style", "Season"]:
-                        # Get unique non-empty options from the full dataframe.
                         options = [opt for opt in get_unique_values(wardrobe_df, col) if opt]
                         fill_value = st.multiselect(f"Fill missing {col} for record {record_id}", options,
                                                     key=f"{record_id}_{col}")
                     else:
-                        # For other columns use text input.
                         fill_value = st.text_input(f"Fill missing {col} for record {record_id}",
                                                    key=f"{record_id}_{col}")
 
-                    # Save the user's input into our updates dictionary.
                     if record_id not in updated_records:
                         updated_records[record_id] = {}
                     updated_records[record_id][col] = fill_value
 
-            # Provide a checkbox to mark the entire record for deletion.
-            drop = st.checkbox(f"Mark record {record_id} for deletion", key=f"drop_{record_id}")
-            if drop:
-                updated_records[record_id] = "DROP"
+            # Check if record has a valid Airtable ID before allowing deletion.
+            if isinstance(record_id, str) and not record_id.startswith("row_"):
+                drop = st.checkbox(f"Mark record {record_id} for deletion", key=f"drop_{record_id}")
+                if drop:
+                    updated_records[record_id] = "DROP"
+            else:
+                st.warning(f"Record {record_id} does not have a valid Airtable ID; cannot be deleted.")
 
             st.markdown("---")
 
         if st.button("Submit Changes for Wardrobe"):
             for record_id, update in updated_records.items():
+                # Only attempt deletion if record_id is valid.
                 if update == "DROP":
                     try:
                         wardrobe_table.delete(record_id)
@@ -553,7 +551,6 @@ elif page == "Data Cleaning":
                         st.write(f"Updated record {record_id}: {response}")
                     except Exception as e:
                         st.error(f"Error updating record {record_id}: {e}")
-            # Refresh data after updates
             wardrobe_df, combinations_df = load_data()
             st.success("Changes submitted and data refreshed.")
 
