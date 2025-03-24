@@ -484,6 +484,22 @@ elif page == "Combinations":
     else:
         st.write("No combination records available.")
 
+    # If we have combinations, show rating analysis
+    if not combinations_df.empty:
+        st.subheader("Combination Ratings Analysis")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(combinations_df['Rating'], bins=11, kde=True, ax=ax)
+        ax.set_title('Distribution of Outfit Ratings')
+        ax.set_xlabel('Rating')
+        ax.set_ylabel('Count')
+        st.pyplot(fig)
+
+        # Top rated
+        st.subheader("Top Rated Combinations")
+        top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
+        st.dataframe(top_combinations)
+
+
 # ============== PAGE: Analysis ==============
 elif page == "Analysis":
     st.title("Wardrobe Analysis")
@@ -551,21 +567,6 @@ elif page == "Analysis":
             ax.set_ylabel(y_dimension)
             ax.set_title(f'{y_dimension} vs {x_dimension}')
             st.pyplot(fig)
-
-        # If we have combinations, show rating analysis
-        if not combinations_df.empty:
-            st.subheader("Combination Ratings Analysis")
-            fig, ax = plt.subplots(figsize=(10, 6))
-            sns.histplot(combinations_df['Rating'], bins=11, kde=True, ax=ax)
-            ax.set_title('Distribution of Outfit Ratings')
-            ax.set_xlabel('Rating')
-            ax.set_ylabel('Count')
-            st.pyplot(fig)
-
-            # Top rated
-            st.subheader("Top Rated Combinations")
-            top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
-            st.dataframe(top_combinations)
 
 # ============== PAGE: About ==============
 elif page == "About":
