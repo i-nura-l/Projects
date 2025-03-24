@@ -77,9 +77,16 @@ def save_data(wardrobe_df, combinations_df):
         row_dict = {}
         for k, v in new_item.items():
             if k != 'TypeNumber' and pd.notna(v):
-                if isinstance(v, str) and k in ['Style', 'Season', 'Color']:
-                    row_dict[k] = [x.strip() for x in v.split(',')]
+                # Handle multi-select fields
+                if k in ['Style', 'Season']:
+                    if isinstance(v, str) and ',' in v:
+                        row_dict[k] = [x.strip() for x in v.split(',')]
+                    elif isinstance(v, str):
+                        row_dict[k] = [v.strip()]
+                    elif isinstance(v, list):
+                        row_dict[k] = [str(x).strip() for x in v]
                 else:
+                    # Send Color and other fields as strings
                     row_dict[k] = v.item() if hasattr(v, 'item') else v
         try:
             wardrobe_table.create(row_dict)
