@@ -1,10 +1,8 @@
-import streamlit as st
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
+import streamlit as st
 from pyairtable import Table
-import random
-import os
 
 # Set page config
 st.set_page_config(page_title="wea-rCloth", layout="wide")
@@ -48,8 +46,7 @@ def load_data():
     combinations_records = combinations_table.all()
 
     # Create DataFrames from records
-    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if
-                                'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
+    wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if 'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
     combinations_df = pd.DataFrame([{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
 
     # Reset index to start from 1
