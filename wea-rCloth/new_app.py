@@ -203,8 +203,8 @@ if page == "Main":
             next_number = len(existing_items) + 1 if not existing_items.empty else 1
 
             # Auto-generate model name
-            style_code = ''.join([s[0] for s in style.split()])
-            season_code = ''.join([s[0] for s in season.split()])
+            style_code = ''.join([s[0] for s in style]) if style else ''
+            season_code = ''.join([s[0] for s in season]) if season else ''
             category_code = st.session_state.form_category.split()[0][0]
             type_prefix = cloth_type.split("-")[0] if "-" in cloth_type else "00"
             model = f"{category_code}{type_prefix}{next_number:02d}{style_code.lower()}{season_code}"
