@@ -105,49 +105,51 @@ def get_unique_values(df, column):
 
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
+    # Save new clothing item if available
     if 'new_item' in st.session_state:
         new_item = st.session_state.new_item
-
-        # Remove any fields that don't exist in Airtable
-        # Ensure field names match exactly what's in Airtable
         row_dict = {}
-        for k, v in new_item.items():
-            if k != 'TypeNumber' and pd.notna(v):  # Skip TypeNumber field
-                row_dict[k] = v
+        for key, value in new_item.items():
+            # Skip the 'TypeNumber' field
+            if key == 'TypeNumber':
+                continue
+            # If value is a list (e.g., multi-select fields)
+            if isinstance(value, list):
+                if value:  # only add if list is not empty
+                    row_dict[key] = value
+            else:
+                # For non-list values, check if not missing
+                if pd.notna(value):
+                    row_dict[key] = value
 
-        # Convert any numpy data types to Python native types
-        for key, value in row_dict.items():
-            if hasattr(value, 'item'):
-                row_dict[key] = value.item()
+        try:
+            wardrobe_table.create(row_dict)
+            st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
+            del st.session_state.new_item
+        except Exception as e:
+            st.error(f"Error saving to Airtable: {str(e)}")
+            st.error("Check if all field names match your Airtable schema")
 
-            try:
-                wardrobe_table.create(row_dict)
-                st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
-                del st.session_state.new_item
-            except Exception as e:
-                st.error(f"Error saving to Airtable: {str(e)}")
-                st.error("Check if all field names match your Airtable schema")
+    # Save new outfit combination if available
+    if 'new_combination' in st.session_state:
+        new_combination = st.session_state.new_combination
+        row_dict = {}
+        for key, value in new_combination.items():
+            if isinstance(value, list):
+                if value:
+                    row_dict[key] = value
+            else:
+                if pd.notna(value):
+                    row_dict[key] = value
 
-        # Save new combination if it exists
-        if 'new_combination' in st.session_state:
-            new_combination = st.session_state.new_combination
-            row_dict = {}
-            for k, v in new_combination.items():
-                if isinstance(v, list):
-                    if len(v) > 0:
-                        row_dict[k] = v
-                else:
-                    if pd.notna(v):
-                        row_dict[k] = v
-
-            try:
-                combinations_table.create(row_dict)
-                st.success("Saved rating for this combination!")
-                del st.session_state.new_combination
-                st.session_state.show_rating = False  # Reset rating UI state
-            except Exception as e:
-                st.error(f"Error saving combination to Airtable: {str(e)}")
-                st.error(f"Data being sent: {row_dict}")
+        try:
+            combinations_table.create(row_dict)
+            st.success("Saved rating for this combination!")
+            del st.session_state.new_combination
+            st.session_state.show_rating = False  # Reset rating UI state
+        except Exception as e:
+            st.error(f"Error saving combination to Airtable: {str(e)}")
+            st.error(f"Data being sent: {row_dict}")
 
 
 # Function to update type options based on selected category
