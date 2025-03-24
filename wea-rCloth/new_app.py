@@ -158,14 +158,6 @@ def update_type_options():
     else:
         st.session_state.type_options = []
 
-def get_record_id_by_model(model_name):
-    # Escape single quotes in the model name
-    escaped_model = model_name.replace("'", "\\'")
-    formula = "({Model} = '{}')".format(escaped_model)
-    results = wardrobe_table.all(filterByFormula=formula)
-    if results:
-        return results[0]["id"]
-    return None
 
 # Load data
 wardrobe_df, combinations_df = load_data()
@@ -495,75 +487,66 @@ elif page == "Combinations":
 
 
 elif page == "Data Cleaning":
-    st.title("Data Cleaning: Handle Missing Values")
+    st.title("Data Cleaning: Handle Empty Spaces")
 
-    st.subheader("Wardrobe Data with Missing Values")
-    # Filter wardrobe_df for rows with any missing values.
-    missing_wardrobe_df = wardrobe_df[wardrobe_df.isnull().any(axis=1)]
+    st.subheader("Wardrobe Data")
+    # Show a summary of missing values in wardrobe_df
+    missing_wardrobe = wardrobe_df.isnull().sum()
+    st.write("Missing values by column:")
+    st.dataframe(missing_wardrobe.to_frame(name="Missing Count"))
 
-    if missing_wardrobe_df.empty:
-        st.write("No missing values found in the Wardrobe data.")
+    st.write("Preview of Wardrobe Data:")
+    st.dataframe(wardrobe_df.head())
+
+    # Let the user choose an action for wardrobe data
+    wardrobe_action = st.radio(
+        "Wardrobe: How do you want to handle empty spaces?",
+        ("Do nothing", "Fill missing values", "Drop rows with missing values"),
+        key="wardrobe_action"
+    )
+
+    if wardrobe_action == "Fill missing values":
+        fill_value = st.text_input("Enter fill value for missing text fields", "Unknown", key="wardrobe_fill")
+        cleaned_wardrobe = wardrobe_df.fillna(fill_value)
+        st.write("Cleaned Wardrobe Data (missing values filled):")
+        st.dataframe(cleaned_wardrobe)
+    elif wardrobe_action == "Drop rows with missing values":
+        cleaned_wardrobe = wardrobe_df.dropna()
+        st.write("Cleaned Wardrobe Data (rows with missing values dropped):")
+        st.dataframe(cleaned_wardrobe)
     else:
-        st.write(
-            "The following records have missing values. For each record, fill in the missing fields or mark the record for deletion.")
+        st.write("No changes applied to Wardrobe data.")
 
-        # Dictionary to store user inputs for updates.
-        updated_records = {}
+    st.markdown("---")
 
-        # Iterate over each row with missing values.
-        for idx, row in missing_wardrobe_df.iterrows():
-            # Instead of using the 'id' from Airtable, we use the 'Model' field as unique identifier.
-            model_val = row.get("Model", f"row_{idx}")
-            st.markdown(f"**Record Model: {model_val}**")
-            st.write(row)
+    st.subheader("Combination Data")
+    # Show a summary of missing values in combinations_df
+    missing_combinations = combinations_df.isnull().sum()
+    st.write("Missing values by column:")
+    st.dataframe(missing_combinations.to_frame(name="Missing Count"))
 
-            # For every column with missing data, show input.
-            for col in wardrobe_df.columns:
-                if col == "Model":
-                    continue
-                if pd.isna(row[col]) or row[col] == "":
-                    if col in ["Style", "Season"]:
-                        options = [opt for opt in get_unique_values(wardrobe_df, col) if opt]
-                        fill_value = st.multiselect(f"Fill missing {col} for record {model_val}", options,
-                                                    key=f"{model_val}_{col}")
-                    else:
-                        fill_value = st.text_input(f"Fill missing {col} for record {model_val}",
-                                                   key=f"{model_val}_{col}")
+    st.write("Preview of Combination Data:")
+    st.dataframe(combinations_df.head())
 
-                    if model_val not in updated_records:
-                        updated_records[model_val] = {}
-                    updated_records[model_val][col] = fill_value
+    # Let the user choose an action for combinations data
+    combinations_action = st.radio(
+        "Combinations: How do you want to handle empty spaces?",
+        ("Do nothing", "Fill missing values", "Drop rows with missing values"),
+        key="combos_action"
+    )
 
-            # Provide a checkbox to mark the record for deletion.
-            drop = st.checkbox(f"Mark record with Model {model_val} for deletion", key=f"drop_{model_val}")
-            if drop:
-                updated_records[model_val] = "DROP"
-
-            st.markdown("---")
-
-        if st.button("Submit Changes for Wardrobe"):
-            for model_val, update in updated_records.items():
-                # Get the Airtable record ID by searching for the model name.
-                record_id = get_record_id_by_model(model_val)
-                if record_id is None:
-                    st.warning(f"Could not find record for Model {model_val} in Airtable. Skipping deletion/update.")
-                    continue
-
-                if update == "DROP":
-                    try:
-                        wardrobe_table.delete(record_id)
-                        st.write(f"Deleted record for Model {model_val} (Record ID: {record_id})")
-                    except Exception as e:
-                        st.error(f"Error deleting record for Model {model_val}: {e}")
-                else:
-                    try:
-                        response = wardrobe_table.update(record_id, update)
-                        st.write(f"Updated record for Model {model_val}: {response}")
-                    except Exception as e:
-                        st.error(f"Error updating record for Model {model_val}: {e}")
-            # Refresh data after updates.
-            wardrobe_df, combinations_df = load_data()
-            st.success("Changes submitted and data refreshed.")
+    if combinations_action == "Fill missing values":
+        fill_value_combo = st.text_input("Enter fill value for missing text fields in combinations", "Unknown",
+                                         key="combos_fill")
+        cleaned_combinations = combinations_df.fillna(fill_value_combo)
+        st.write("Cleaned Combination Data (missing values filled):")
+        st.dataframe(cleaned_combinations)
+    elif combinations_action == "Drop rows with missing values":
+        cleaned_combinations = combinations_df.dropna()
+        st.write("Cleaned Combination Data (rows with missing values dropped):")
+        st.dataframe(cleaned_combinations)
+    else:
+        st.write("No changes applied to Combination data.")
 
 
 elif page == "Analysis":
