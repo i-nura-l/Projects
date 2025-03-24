@@ -296,25 +296,20 @@ elif page == "Wardrobe":
 
     # Filter options
     st.sidebar.subheader("Filter Options")
-
-    # Safe access to columns
-    categories = wardrobe_df[
-        'Category'].unique().tolist() if not wardrobe_df.empty and 'Category' in wardrobe_df.columns else []
-    styles = wardrobe_df['Style'].unique().tolist() if not wardrobe_df.empty and 'Style' in wardrobe_df.columns else []
-    seasons = wardrobe_df[
-        'Season'].unique().tolist() if not wardrobe_df.empty and 'Season' in wardrobe_df.columns else []
-
-    filter_category = st.sidebar.multiselect("Category", categories)
-    filter_style = st.sidebar.multiselect("Style", styles)
-    filter_season = st.sidebar.multiselect("Season", seasons)
+    filter_category = st.sidebar.multiselect("Category",
+                                             wardrobe_df['Category'].unique().tolist() if not wardrobe_df.empty else [])
+    filter_style = st.sidebar.multiselect("Style",
+                                          wardrobe_df['Style'].unique().tolist() if not wardrobe_df.empty else [])
+    filter_season = st.sidebar.multiselect("Season",
+                                           wardrobe_df['Season'].unique().tolist() if not wardrobe_df.empty else [])
 
     # Apply filters
     filtered_df = wardrobe_df.copy()
-    if filter_category and 'Category' in filtered_df.columns:
+    if filter_category:
         filtered_df = filtered_df[filtered_df['Category'].isin(filter_category)]
-    if filter_style and 'Style' in filtered_df.columns:
+    if filter_style:
         filtered_df = filtered_df[filtered_df['Style'].isin(filter_style)]
-    if filter_season and 'Season' in filtered_df.columns:
+    if filter_season:
         filtered_df = filtered_df[filtered_df['Season'].isin(filter_season)]
 
     # Display wardrobe items
@@ -330,100 +325,87 @@ elif page == "Analysis":
     if wardrobe_df.empty:
         st.info("Add some items to your wardrobe to see analysis!")
     else:
-        # Check if we have necessary columns
-        required_columns = ["Category", "Type", "Style", "Color", "Season"]
-        missing_columns = [col for col in required_columns if col not in wardrobe_df.columns]
+        # Select visualization type
+        viz_type = st.selectbox("Select Visualization Type", ["Pie Chart", "Bar Chart", "Line Chart", "Scatter Plot"])
 
-        if missing_columns:
-            st.warning(f"Missing columns in your data: {', '.join(missing_columns)}. Some visualizations may not work.")
+        if viz_type in ["Pie Chart", "Bar Chart", "Line Chart"]:
+            # Select data dimension
+            dimension = st.selectbox("Select Data Dimension",
+                                     ["Category", "Type", "Style", "Color", "Season"])
 
-        # Available columns for visualization
-        available_columns = [col for col in required_columns if col in wardrobe_df.columns]
+            # Create figure
+            fig, ax = plt.subplots(figsize=(10, 6))
 
-        if not available_columns:
-            st.error("No suitable columns found for visualization")
-        else:
-            # Select visualization type
-            viz_type = st.selectbox("Select Visualization Type",
-                                    ["Pie Chart", "Bar Chart", "Line Chart", "Scatter Plot"])
+            if viz_type == "Pie Chart":
+                counts = wardrobe_df[dimension].value_counts()
+                ax.pie(counts, labels=counts.index, autopct='%1.1f%%')
+                ax.set_title(f'Distribution of {dimension}')
 
-            if viz_type in ["Pie Chart", "Bar Chart", "Line Chart"]:
-                # Select data dimension
-                dimension = st.selectbox("Select Data Dimension", available_columns)
+            elif viz_type == "Bar Chart":
+                counts = wardrobe_df[dimension].value_counts()
+                counts.plot(kind='bar', ax=ax)
+                ax.set_title(f'{dimension} Counts')
+                ax.set_xlabel(dimension)
+                ax.set_ylabel('Count')
 
-                # Create figure
-                fig, ax = plt.subplots(figsize=(10, 6))
+            elif viz_type == "Line Chart":
+                # For line chart, use chronological ordering if possible
+                if dimension == "Type":
+                    # Extract type number for ordering
+                    type_counts = wardrobe_df[dimension].value_counts().sort_index()
+                    type_counts.plot(kind='line', marker='o', ax=ax)
+                else:
+                    wardrobe_df[dimension].value_counts().plot(kind='line', marker='o', ax=ax)
+                ax.set_title(f'Trend of {dimension}')
+                ax.set_xlabel(dimension)
+                ax.set_ylabel('Count')
 
-                if viz_type == "Pie Chart":
-                    counts = wardrobe_df[dimension].value_counts()
-                    ax.pie(counts, labels=counts.index, autopct='%1.1f%%')
-                    ax.set_title(f'Distribution of {dimension}')
+            st.pyplot(fig)
 
-                elif viz_type == "Bar Chart":
-                    counts = wardrobe_df[dimension].value_counts()
-                    counts.plot(kind='bar', ax=ax)
-                    ax.set_title(f'{dimension} Counts')
-                    ax.set_xlabel(dimension)
-                    ax.set_ylabel('Count')
+        elif viz_type == "Scatter Plot":
+            # For scatter plot, need two dimensions
+            col1, col2 = st.columns(2)
 
-                elif viz_type == "Line Chart":
-                    # For line chart, use chronological ordering if possible
-                    if dimension == "Type":
-                        # Extract type number for ordering
-                        type_counts = wardrobe_df[dimension].value_counts().sort_index()
-                        type_counts.plot(kind='line', marker='o', ax=ax)
-                    else:
-                        wardrobe_df[dimension].value_counts().plot(kind='line', marker='o', ax=ax)
-                    ax.set_title(f'Trend of {dimension}')
-                    ax.set_xlabel(dimension)
-                    ax.set_ylabel('Count')
+            with col1:
+                x_dimension = st.selectbox("X-Axis", ["Category", "Type", "Style", "Color", "Season"])
 
-                st.pyplot(fig)
+            with col2:
+                y_dimension = st.selectbox("Y-Axis", ["Category", "Type", "Style", "Color", "Season"])
 
-            elif viz_type == "Scatter Plot" and len(available_columns) >= 2:
-                # For scatter plot, need two dimensions
-                col1, col2 = st.columns(2)
+            # Need to encode categorical variables numerically for scatter plot
+            fig, ax = plt.subplots(figsize=(10, 6))
 
-                with col1:
-                    x_dimension = st.selectbox("X-Axis", available_columns)
+            # Create encoded versions for plotting
+            wardrobe_encoded = wardrobe_df.copy()
+            for dim in [x_dimension, y_dimension]:
+                categories = wardrobe_df[dim].unique()
+                category_map = {cat: i for i, cat in enumerate(categories)}
+                wardrobe_encoded[f"{dim}_encoded"] = wardrobe_df[dim].map(category_map)
 
-                with col2:
-                    y_dimension = st.selectbox("Y-Axis", available_columns, index=min(1, len(available_columns) - 1))
+            # Create scatter plot with categorical encoding
+            scatter = ax.scatter(
+                wardrobe_encoded[f"{x_dimension}_encoded"],
+                wardrobe_encoded[f"{y_dimension}_encoded"],
+                c=wardrobe_encoded[f"{x_dimension}_encoded"],
+                alpha=0.6
+            )
 
-                # Need to encode categorical variables numerically for scatter plot
-                fig, ax = plt.subplots(figsize=(10, 6))
+            # Set tick labels to original categories
+            x_categories = wardrobe_df[x_dimension].unique()
+            y_categories = wardrobe_df[y_dimension].unique()
+            ax.set_xticks(range(len(x_categories)))
+            ax.set_yticks(range(len(y_categories)))
+            ax.set_xticklabels(x_categories)
+            ax.set_yticklabels(y_categories)
 
-                # Create encoded versions for plotting
-                wardrobe_encoded = wardrobe_df.copy()
-                for dim in [x_dimension, y_dimension]:
-                    categories = wardrobe_df[dim].unique()
-                    category_map = {cat: i for i, cat in enumerate(categories)}
-                    wardrobe_encoded[f"{dim}_encoded"] = wardrobe_df[dim].map(category_map)
+            ax.set_xlabel(x_dimension)
+            ax.set_ylabel(y_dimension)
+            ax.set_title(f'{y_dimension} vs {x_dimension}')
 
-                # Create scatter plot with categorical encoding
-                scatter = ax.scatter(
-                    wardrobe_encoded[f"{x_dimension}_encoded"],
-                    wardrobe_encoded[f"{y_dimension}_encoded"],
-                    c=wardrobe_encoded[f"{x_dimension}_encoded"],
-                    alpha=0.6
-                )
-
-                # Set tick labels to original categories
-                x_categories = wardrobe_df[x_dimension].unique()
-                y_categories = wardrobe_df[y_dimension].unique()
-                ax.set_xticks(range(len(x_categories)))
-                ax.set_yticks(range(len(y_categories)))
-                ax.set_xticklabels(x_categories)
-                ax.set_yticklabels(y_categories)
-
-                ax.set_xlabel(x_dimension)
-                ax.set_ylabel(y_dimension)
-                ax.set_title(f'{y_dimension} vs {x_dimension}')
-
-                st.pyplot(fig)
+            st.pyplot(fig)
 
         # If we have combinations, show rating analysis
-        if not combinations_df.empty and 'Rating' in combinations_df.columns:
+        if not combinations_df.empty:
             st.subheader("Combination Ratings Analysis")
 
             fig, ax = plt.subplots(figsize=(10, 6))
@@ -438,7 +420,6 @@ elif page == "Analysis":
             st.subheader("Top Rated Combinations")
             top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
             st.dataframe(top_combinations)
-
 elif page == "About":
     st.title("About wea-rCloth")
 
