@@ -77,6 +77,7 @@ def save_data(wardrobe_df, combinations_df):
         row_dict = {}
         for k, v in new_item.items():
             if k != 'TypeNumber' and pd.notna(v):
+                # Handle multi-select fields
                 if k in ['Style', 'Season']:
                     if isinstance(v, str) and ',' in v:
                         row_dict[k] = [x.strip() for x in v.split(',')]
@@ -85,6 +86,7 @@ def save_data(wardrobe_df, combinations_df):
                     elif isinstance(v, list):
                         row_dict[k] = [str(x).strip() for x in v]
                 else:
+                    # Send Color and other fields as strings
                     row_dict[k] = v.item() if hasattr(v, 'item') else v
         try:
             wardrobe_table.create(row_dict)
@@ -113,8 +115,6 @@ def update_type_options():
 
 # ---------------------------- LOAD DATA ----------------------------
 wardrobe_df, combinations_df = load_data()
-
-# (The rest of the code remains unchanged and was verified to work correctly.)
 
 # ---------------------------- SIDEBAR NAVIGATION ----------------------------
 st.sidebar.title("wea-rCloth")
