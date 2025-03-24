@@ -47,20 +47,20 @@ def load_data():
     wardrobe_records = wardrobe_table.all()
     combinations_records = combinations_table.all()
 
-    # Create DataFrame from records and ensure we're only including records with fields
+    # Create DataFrames from records
     wardrobe_df = pd.DataFrame([rec['fields'] for rec in wardrobe_records if
                                 'fields' in rec and rec['fields']]) if wardrobe_records else pd.DataFrame()
     combinations_df = pd.DataFrame([rec['fields'] for rec in combinations_records if
                                     'fields' in rec and rec['fields']]) if combinations_records else pd.DataFrame()
 
-    # Reset index to start from 1 instead of 0
+    # Reset index to start from 1
     if not wardrobe_df.empty:
         wardrobe_df = wardrobe_df.reset_index(drop=True)
-        wardrobe_df.index = wardrobe_df.index + 1  # Shift index to start from 1
+        wardrobe_df.index = wardrobe_df.index + 1
 
     if not combinations_df.empty:
         combinations_df = combinations_df.reset_index(drop=True)
-        combinations_df.index = combinations_df.index + 1  # Shift index to start from 1
+        combinations_df.index = combinations_df.index + 1
 
     # Ensure all expected columns exist
     expected_columns = ['Model', 'Category', 'Type', 'Style', 'Color', 'Season']
@@ -68,9 +68,41 @@ def load_data():
         if col not in wardrobe_df.columns:
             wardrobe_df[col] = None
 
-    # Rest of your function...
+    # Convert multi-select fields to string representation if needed
+    multi_select_columns = ['Style', 'Season']
+    for col in multi_select_columns:
+        if col in wardrobe_df.columns:
+            # Convert lists to strings if they are lists
+            wardrobe_df[col] = wardrobe_df[col].apply(
+                lambda x: ', '.join(x) if isinstance(x, list) else x
+            )
 
     return wardrobe_df, combinations_df
+
+
+def get_unique_values(df, column):
+    """Get unique values from a column that may contain comma-separated values."""
+    if df is None or df.empty or column not in df.columns:
+        return []
+
+    # Handle both list values and string values
+    all_values = set()
+
+    for value in df[column].dropna():
+        if isinstance(value, list):
+            # If it's still a list, add each item
+            for item in value:
+                all_values.add(item)
+        elif isinstance(value, str):
+            # If it's a string that might be comma-separated
+            if ',' in value:
+                for item in value.split(','):
+                    all_values.add(item.strip())
+            else:
+                all_values.add(value)
+
+    return sorted(list(all_values))
+
 def save_data(wardrobe_df, combinations_df):
     """Save data to Airtable instead of CSV files."""
     if 'new_item' in st.session_state:
@@ -316,13 +348,25 @@ elif page == "Wardrobe":
     )
     # Apply filters
     filtered_df = wardrobe_df.copy()
+
     if filter_category:
         filtered_df = filtered_df[filtered_df['Category'].isin(filter_category)]
-    if filter_style:
-        filtered_df = filtered_df[filtered_df['Style'].isin(filter_style)]
-    if filter_season:
-        filtered_df = filtered_df[filtered_df['Season'].isin(filter_season)]
 
+    if filter_style:
+        # For multi-select fields, we need to check if any of the selected values are in the field
+        if not filtered_df.empty and 'Style' in filtered_df.columns:
+            mask = filtered_df['Style'].apply(
+                lambda x: any(style in str(x) for style in filter_style) if pd.notna(x) else False
+            )
+            filtered_df = filtered_df[mask]
+
+    if filter_season:
+        # Same approach for Season
+        if not filtered_df.empty and 'Season' in filtered_df.columns:
+            mask = filtered_df['Season'].apply(
+                lambda x: any(season in str(x) for season in filter_season) if pd.notna(x) else False
+            )
+            filtered_df = filtered_df[mask]
     # Display wardrobe items
     if not filtered_df.empty:
         st.dataframe(filtered_df)
