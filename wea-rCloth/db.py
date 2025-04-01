@@ -8,7 +8,7 @@ def get_connection():
     """
     conn = psycopg2.connect(
         host=os.getenv("DB_HOST", "localhost"),
-        dbname=os.getenv("DB_NAME", "wea-rCloth"),
+        dbname=os.getenv("DB_NAME", "wea_rcloth"),
         user=os.getenv("DB_USER", "postgres"),
         password=os.getenv("DB_PASSWORD", "nura3578")  # Replace with your actual password
     )
