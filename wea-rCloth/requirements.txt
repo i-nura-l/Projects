@@ -1,8 +1,6 @@
 streamlit
-pyairtable
+psycopg2-binary
+bcrypt
 pandas
 matplotlib
 seaborn
-numpy
-airtable-python-wrapper
-psycopg2-binary
