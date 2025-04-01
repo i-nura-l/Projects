@@ -4,3 +4,6 @@ bcrypt
 pandas
 matplotlib
 seaborn
+streamlit
+pyairtable
+airtable-python-wrapper
