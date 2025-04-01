@@ -5,3 +5,4 @@ matplotlib
 seaborn
 numpy
 airtable-python-wrapper
+psycopg2-binary
