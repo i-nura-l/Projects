@@ -21,24 +21,27 @@ def sign_up(name, email, password):
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     data = {"name": name, "email": email, "password": hashed, "role": "user"}
     result = supabase.table("user_data").insert(data).execute()
-    if result.error:
-        st.error(result.error.message)
+    result_dict = result.dict()
+    if result_dict.get("error"):
+        st.error(result_dict["error"]["message"])
         return None
     else:
         st.success("Account created successfully! Please sign in.")
-        return result.data
+        return result_dict.get("data")
 
 def sign_in(email, password):
     result = supabase.table("user_data").select("*").eq("email", email).execute()
-    if result.error or not result.data:
+    result_dict = result.dict()
+    if result_dict.get("error") or not result_dict.get("data"):
         st.error("User not found")
         return None
-    user = result.data[0]
+    user = result_dict.get("data")[0]
     if bcrypt.checkpw(password.encode(), user["password"].encode()):
         return user
     else:
         st.error("Invalid credentials")
         return None
+
 
 def login_signup_page():
     st.title("👕 wea-rCloth Login")
@@ -105,7 +108,6 @@ if 'type_options' not in st.session_state:
 
 # ------------------------- DATABASE FUNCTIONS USING SUPABASE -------------------------
 def load_data(user_id, role):
-    # If admin, load all; otherwise filter by user_id
     if role == "admin":
         wardrobe_response = supabase.table("wardrobe_data").select("*").execute()
         combo_response = supabase.table("combination_data").select("*").execute()
@@ -113,17 +115,20 @@ def load_data(user_id, role):
         wardrobe_response = supabase.table("wardrobe_data").select("*").eq("user_id", user_id).execute()
         combo_response = supabase.table("combination_data").select("*").eq("user_id", user_id).execute()
 
-    if wardrobe_response.error:
-        st.error(wardrobe_response.error.message)
+    wardrobe_dict = wardrobe_response.dict()
+    combo_dict = combo_response.dict()
+
+    if wardrobe_dict.get("error"):
+        st.error(wardrobe_dict["error"]["message"])
         wardrobe_df = pd.DataFrame()
     else:
-        wardrobe_df = pd.DataFrame(wardrobe_response.data)
+        wardrobe_df = pd.DataFrame(wardrobe_dict.get("data"))
 
-    if combo_response.error:
-        st.error(combo_response.error.message)
+    if combo_dict.get("error"):
+        st.error(combo_dict["error"]["message"])
         combos_df = pd.DataFrame()
     else:
-        combos_df = pd.DataFrame(combo_response.data)
+        combos_df = pd.DataFrame(combo_dict.get("data"))
 
     # Convert array fields to comma-separated strings for display
     for col in ['style', 'season']:
@@ -144,13 +149,14 @@ def save_data():
             "model": item['Model'],
             "category": item['Category'],
             "type": item['Type'],
-            "style": item['Style'],      # stored as an array
+            "style": item['Style'],    # stored as an array
             "color": item['Color'],
-            "season": item['Season']     # stored as an array
+            "season": item['Season']   # stored as an array
         }
         response = supabase.table("wardrobe_data").insert(data).execute()
-        if response.error:
-            st.error(f"Error saving wardrobe item: {response.error.message}")
+        response_dict = response.dict()
+        if response_dict.get("error"):
+            st.error(f"Error saving wardrobe item: {response_dict['error']['message']}")
         else:
             st.success(f"Added {item['Model']} to your wardrobe!")
         del st.session_state.new_item
@@ -170,12 +176,14 @@ def save_data():
             "rating": combo['Rating']
         }
         response = supabase.table("combination_data").insert(data).execute()
-        if response.error:
-            st.error(f"Error saving combination: {response.error.message}")
+        response_dict = response.dict()
+        if response_dict.get("error"):
+            st.error(f"Error saving combination: {response_dict['error']['message']}")
         else:
             st.success("Saved rating for this combination!")
         del st.session_state.new_combination
         st.session_state.show_rating = False
+
 
 def get_unique_values(df, column):
     if df is None or df.empty or column not in df.columns:
