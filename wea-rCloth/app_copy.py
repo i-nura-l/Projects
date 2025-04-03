@@ -13,70 +13,11 @@ SUPABASE_URL = "https://tnrzphomntjzwwgvsvvk.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRucnpwaG9tbnRqend3Z3ZzdnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NTcxNTAsImV4cCI6MjA1OTIzMzE1MH0.GEMCVRhxmw_MHAD4rmaEHoCTOGKhVuYGJo5IyGFte8k"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ------------------------- AUTHENTICATION FUNCTIONS -------------------------
-def sign_up(name, email, password):
-    try:
-        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-        data = {"name": name, "email": email, "password": hashed, "role": "user"}
-        result = supabase.table("user_data").insert(data).execute()
-        result_dict = result.dict()
-        if result_dict.get("error"):
-            st.error(result_dict["error"]["message"])
-            return None
-        else:
-            st.success("Account created successfully! Please sign in.")
-            return result_dict.get("data")
-    except Exception as e:
-        st.error(f"Sign up failed: {e}")
-        return None
-
-def sign_in(email, password):
-    result = supabase.table("user_data").select("*").eq("email", email).execute()
-    result_dict = result.dict()
-    if result_dict.get("error") or not result_dict.get("data"):
-        st.error("User not found")
-        return None
-    user = result_dict.get("data")[0]
-    if bcrypt.checkpw(password.encode(), user["password"].encode()):
-        return user
-    else:
-        st.error("Invalid credentials")
-        return None
-
-def login_signup_page():
-    # Skip this page if the user is already logged in
-    if st.session_state.get("user_info"):
-        return
-
-    st.title("👕 wea-rCloth Login")
-    option = st.radio("Choose:", ["Login", "Sign Up"])
-
-    if option == "Login":
-        with st.form("login_form"):
-            email = st.text_input("Email", key="login_email")
-            password = st.text_input("Password", type="password", key="login_password")
-            submitted = st.form_submit_button("Login")
-            if submitted:
-                user = sign_in(email, password)
-                if user:
-                    st.session_state.user_info = user
-                    st.success(f"Welcome, {user['name']}!")
-    else:  # Sign Up
-        with st.form("signup_form"):
-            name = st.text_input("Name", key="signup_name")
-            email = st.text_input("Email", key="signup_email")
-            password = st.text_input("Password", type="password", key="signup_password")
-            submitted = st.form_submit_button("Sign Up")
-            if submitted:
-                if sign_up(name, email, password):
-                    st.success("Account created! Please sign in.")
-
-# Call login/signup page and stop if not signed in
-login_signup_page()
-if not st.session_state.get("user_info"):
-    st.stop()
-
 # ------------------------- SESSION STATE SETUP -------------------------
+# Remove login functionality and assign a default user
+if 'user_info' not in st.session_state:
+    st.session_state.user_info = {"id": "guest", "role": "user", "name": "Guest"}
+
 if 'current_combination' not in st.session_state:
     st.session_state.current_combination = None
 if 'show_rating' not in st.session_state:
@@ -202,7 +143,7 @@ def update_type_options():
     else:
         st.session_state.type_options = []
 
-# Load data for the signed-in user
+# Load data for the default user
 user = st.session_state.user_info
 wardrobe_df, combinations_df = load_data(user["id"], user["role"])
 
@@ -267,7 +208,6 @@ if page == "Main":
                     'color': color,
                     'season': selected_season
                 }
-                # Update local DF for immediate UI feedback
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
                 st.session_state.new_item = new_item
                 save_data()
@@ -280,12 +220,12 @@ if page == "Main":
             chosen_season = st.selectbox(
                 "Choose Season",
                 ["Winter", "Vernal", "Summer", "Autumn", "Universal"],
-                index=4  # default to "Universal"
+                index=4
             )
             chosen_style = st.selectbox(
                 "Choose Style",
                 ["Casual", "Formal", "Trendy", "Universal"],
-                index=3  # default to "Universal"
+                index=3
             )
             generate_button = st.form_submit_button("Generate Outfit")
 
@@ -326,17 +266,12 @@ if page == "Main":
                         lower_item = lower_df.sample(1).iloc[0]
                         shoe_item  = foot_df.sample(1).iloc[0]
 
-                        # Generate a new combination ID using lower-case key
                         if not combinations_df.empty and 'combination_id' in combinations_df.columns:
                             existing_codes = [
                                 code for code in combinations_df['combination_id']
                                 if isinstance(code, str) and code.startswith('C')
                             ]
-                            if existing_codes:
-                                max_num = max(int(code[1:]) for code in existing_codes)
-                                new_num = max_num + 1
-                            else:
-                                new_num = 1
+                            new_num = max(int(code[1:]) for code in existing_codes) + 1 if existing_codes else 1
                         else:
                             new_num = 1
                         combination_id = f"C{new_num:03d}"
@@ -357,7 +292,6 @@ if page == "Main":
         if st.session_state.show_rating and st.session_state.current_combination:
             combo = st.session_state.current_combination
 
-            # Fetch details using lower-case keys
             upper_details = wardrobe_df[wardrobe_df['model'] == combo['upper_body']]
             lower_details = wardrobe_df[wardrobe_df['model'] == combo['lower_body']]
             foot_details  = wardrobe_df[wardrobe_df['model'] == combo['footwear']]
