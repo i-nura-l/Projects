@@ -47,7 +47,7 @@ def sign_in(email, password):
         return None
 
 def login_signup_page():
-    # If user is already logged in, skip showing the login/sign up forms.
+    # Skip this page if the user is already logged in
     if st.session_state.get("user_info"):
         return
 
@@ -64,7 +64,6 @@ def login_signup_page():
                 if user:
                     st.session_state.user_info = user
                     st.success(f"Welcome, {user['name']}!")
-                    # No experimental_rerun needed—after setting user_info, the main app is loaded.
     else:  # Sign Up
         with st.form("signup_form"):
             name = st.text_input("Name", key="signup_name")
@@ -75,11 +74,10 @@ def login_signup_page():
                 if sign_up(name, email, password):
                     st.success("Account created! Please sign in.")
 
-# At the top level, call login_signup_page then hide it if the user is logged in.
+# Call login/signup page and stop if not signed in
 login_signup_page()
 if not st.session_state.get("user_info"):
     st.stop()
-
 
 # ------------------------- SESSION STATE SETUP -------------------------
 if 'current_combination' not in st.session_state:
@@ -150,19 +148,19 @@ def save_data():
         user_id = st.session_state.user_info["id"]
         data = {
             "user_id": user_id,
-            "model": item['Model'],
-            "category": item['Category'],
-            "type": item['Type'],
-            "style": item['Style'],    # stored as an array
-            "color": item['Color'],
-            "season": item['Season']   # stored as an array
+            "model": item['model'],
+            "category": item['category'],
+            "type": item['type'],
+            "style": item['style'],    # stored as an array
+            "color": item['color'],
+            "season": item['season']   # stored as an array
         }
         response = supabase.table("wardrobe_data").insert(data).execute()
         response_dict = response.dict()
         if response_dict.get("error"):
             st.error(f"Error saving wardrobe item: {response_dict['error']['message']}")
         else:
-            st.success(f"Added {item['Model']} to your wardrobe!")
+            st.success(f"Added {item['model']} to your wardrobe!")
         del st.session_state.new_item
 
     # Save new outfit combination
@@ -171,13 +169,13 @@ def save_data():
         user_id = st.session_state.user_info["id"]
         data = {
             "user_id": user_id,
-            "combination_id": combo['Combination_ID'],
-            "upper_body": combo['Upper_Body'],
-            "lower_body": combo['Lower_Body'],
-            "footwear": combo['Footwear'],
-            "season_match": combo['Season_Match'],  # stored as an array
-            "style_match": combo['Style_Match'],     # stored as an array
-            "rating": combo['Rating']
+            "combination_id": combo['combination_id'],
+            "upper_body": combo['upper_body'],
+            "lower_body": combo['lower_body'],
+            "footwear": combo['footwear'],
+            "season_match": combo['season_match'],  # stored as an array
+            "style_match": combo['style_match'],     # stored as an array
+            "rating": combo['rating']
         }
         response = supabase.table("combination_data").insert(data).execute()
         response_dict = response.dict()
@@ -187,7 +185,6 @@ def save_data():
             st.success("Saved rating for this combination!")
         del st.session_state.new_combination
         st.session_state.show_rating = False
-
 
 def get_unique_values(df, column):
     if df is None or df.empty or column not in df.columns:
@@ -240,6 +237,7 @@ if page == "Main":
             color = st.text_input("Color")
             selected_season = st.multiselect("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"], default=["Universal"])
 
+            # Use lower-case keys for consistency
             existing_items = wardrobe_df[
                 (wardrobe_df['category'] == st.session_state.form_category) &
                 (wardrobe_df['type'] == cloth_type)
@@ -257,12 +255,12 @@ if page == "Main":
             submitted = st.form_submit_button("Add to Wardrobe")
             if submitted:
                 new_item = {
-                    'Model': model,
-                    'Category': st.session_state.form_category,
-                    'Type': cloth_type,
-                    'Style': selected_style,
-                    'Color': color,
-                    'Season': selected_season
+                    'model': model,
+                    'category': st.session_state.form_category,
+                    'type': cloth_type,
+                    'style': selected_style,
+                    'color': color,
+                    'season': selected_season
                 }
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
                 st.session_state.new_item = new_item
@@ -316,21 +314,21 @@ if page == "Main":
                             new_num = 1
                         combination_id = f"C{new_num:03d}"
                         st.session_state.current_combination = {
-                            'Combination_ID': combination_id,
-                            'Upper_Body': upper_item['model'],
-                            'Lower_Body': lower_item['model'],
-                            'Footwear': shoe_item['model'],
-                            'Season_Match': [chosen_season],
-                            'Style_Match': [chosen_style]
+                            'combination_id': combination_id,
+                            'upper_body': upper_item['model'],
+                            'lower_body': lower_item['model'],
+                            'footwear': shoe_item['model'],
+                            'season_match': [chosen_season],
+                            'style_match': [chosen_style]
                         }
                         st.session_state.show_rating = True
             except Exception as e:
                 st.error("Error generating outfit combination: " + str(e))
         if st.session_state.show_rating and st.session_state.current_combination:
             combo = st.session_state.current_combination
-            upper_details = wardrobe_df[wardrobe_df['model'] == combo['Upper_Body']]
-            lower_details = wardrobe_df[wardrobe_df['model'] == combo['Lower_Body']]
-            foot_details = wardrobe_df[wardrobe_df['model'] == combo['Footwear']]
+            upper_details = wardrobe_df[wardrobe_df['model'] == combo['upper_body']]
+            lower_details = wardrobe_df[wardrobe_df['model'] == combo['lower_body']]
+            foot_details = wardrobe_df[wardrobe_df['model'] == combo['footwear']]
             st.subheader("Your Outfit Combination:")
             if not upper_details.empty:
                 st.write(f"**Upper Body:** {upper_details['model'].values[0]} - {upper_details['type'].values[0]} ({upper_details['color'].values[0]})")
@@ -338,15 +336,15 @@ if page == "Main":
                 st.write(f"**Lower Body:** {lower_details['model'].values[0]} - {lower_details['type'].values[0]} ({lower_details['color'].values[0]})")
             if not foot_details.empty:
                 st.write(f"**Footwear:** {foot_details['model'].values[0]} - {foot_details['type'].values[0]} ({foot_details['color'].values[0]})")
-            st.write(f"**Chosen Season:** {', '.join(combo['Season_Match'])}")
-            st.write(f"**Chosen Style:** {', '.join(combo['Style_Match'])}")
+            st.write(f"**Chosen Season:** {', '.join(combo['season_match'])}")
+            st.write(f"**Chosen Style:** {', '.join(combo['style_match'])}")
             with st.form("rating_form"):
                 rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
                 save_rating = st.form_submit_button("Save Rating")
                 if save_rating:
-                    new_combination = combo.copy()
-                    new_combination['Rating'] = rating
-                    st.session_state.new_combination = new_combination
+                    new_combo = combo.copy()
+                    new_combo['rating'] = rating
+                    st.session_state.new_combination = new_combo
                     save_data()
 
 # ------------------------- PAGE: WARDROBE -------------------------
