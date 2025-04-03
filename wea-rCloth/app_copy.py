@@ -261,8 +261,8 @@ if page == "Main":
 
             st.write(f"Generated Model ID: {model}")
 
-            submitted = st.form_submit_button("Add to Wardrobe")
-            if submitted:
+            add_button = st.form_submit_button("Add to Wardrobe")
+            if add_button:
                 new_item = {
                     'Model': model,
                     'Category': st.session_state.form_category,
