@@ -218,40 +218,42 @@ if user["role"] == "admin":
 page = st.sidebar.selectbox("Navigation", pages)
 
 # ------------------------- PAGE: MAIN -------------------------
+# ------------------------- PAGE: MAIN -------------------------
 if page == "Main":
-    st.title("wea-rCloth - Your Smart Wardrobe Assistant")
+    st.title("wea‑rCloth - Your Smart Wardrobe Assistant")
     col1, col2 = st.columns(2)
 
     # Column 1: Add New Clothing
     with col1:
         st.subheader("Add New Clothing Item")
-        category_select = st.selectbox(
+        # Category selection (outside the form so that on_change works)
+        st.session_state.form_category = st.selectbox(
             "Category",
             ["Upper body", "Lower body", "Footwear"],
             key="category_select",
             on_change=update_type_options
         )
-        with st.form("new_cloth_form"):
-            cloth_type = st.selectbox("Type", st.session_state.type_options)
-            selected_style = st.multiselect("Style", ["Casual", "Formal", "Trendy", "Universal"], default=["Casual"])
-            color = st.text_input("Color")
-            selected_season = st.multiselect("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"], default=["Universal"])
-
-            # Use lower-case keys for consistency
+        # New clothing form
+        with st.form(key="new_cloth_form"):
+            cloth_type = st.selectbox("Type", st.session_state.type_options, key="cloth_type")
+            selected_style = st.multiselect("Style", ["Casual", "Formal", "Trendy", "Universal"],
+                                            default=["Casual"], key="selected_style")
+            color = st.text_input("Color", key="color")
+            selected_season = st.multiselect("Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"],
+                                             default=["Universal"], key="selected_season")
+            # Auto-generate model name
             existing_items = wardrobe_df[
                 (wardrobe_df['category'] == st.session_state.form_category) &
                 (wardrobe_df['type'] == cloth_type)
             ]
             next_number = len(existing_items) + 1 if not existing_items.empty else 1
-
-            # Auto-generate model name
             style_code = ''.join([s[0] for s in selected_style]) if selected_style else ''
             season_code = ''.join([s[0] for s in selected_season]) if selected_season else ''
             category_code = st.session_state.form_category[0]
             type_prefix = cloth_type.split("-")[0] if "-" in cloth_type else "00"
             model = f"{category_code}{type_prefix}{next_number:02d}{style_code.lower()}{season_code}"
             st.write(f"Generated Model ID: {model}")
-
+            # The submit button for adding to wardrobe
             submitted = st.form_submit_button("Add to Wardrobe")
             if submitted:
                 new_item = {
@@ -269,9 +271,11 @@ if page == "Main":
     # Column 2: Generate Outfit Combination
     with col2:
         st.subheader("Generate Outfit Combination")
-        with st.form("generate_outfit_form"):
-            chosen_season = st.selectbox("Choose Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"], index=4)
-            chosen_style = st.selectbox("Choose Style", ["Casual", "Formal", "Trendy", "Universal"], index=3)
+        with st.form(key="generate_outfit_form"):
+            chosen_season = st.selectbox("Choose Season", ["Winter", "Vernal", "Summer", "Autumn", "Universal"],
+                                         index=4, key="chosen_season")
+            chosen_style = st.selectbox("Choose Style", ["Casual", "Formal", "Trendy", "Universal"],
+                                        index=3, key="chosen_style")
             generate_button = st.form_submit_button("Generate Outfit")
         if generate_button:
             try:
@@ -282,7 +286,6 @@ if page == "Main":
                         return False
                     item_season_list = [s.strip() for s in item_season_str.split(',')]
                     return ("Universal" in item_season_list) or (season_choice in item_season_list)
-
                 def matches_style(item_style_str, style_choice):
                     if style_choice == "Universal":
                         return True
@@ -290,7 +293,6 @@ if page == "Main":
                         return False
                     item_style_list = [s.strip() for s in item_style_str.split(',')]
                     return ("Universal" in item_style_list) or (style_choice in item_style_list)
-
                 valid_items = wardrobe_df[
                     wardrobe_df['season'].apply(lambda x: matches_season(x, chosen_season)) &
                     wardrobe_df['style'].apply(lambda x: matches_style(x, chosen_style))
@@ -308,7 +310,8 @@ if page == "Main":
                         lower_item = lower_df.sample(1).iloc[0]
                         shoe_item = foot_df.sample(1).iloc[0]
                         if not combinations_df.empty and 'combination_id' in combinations_df.columns:
-                            existing_codes = [code for code in combinations_df['combination_id'] if isinstance(code, str) and code.startswith('C')]
+                            existing_codes = [code for code in combinations_df['combination_id']
+                                              if isinstance(code, str) and code.startswith('C')]
                             new_num = max([int(code[1:]) for code in existing_codes]) + 1 if existing_codes else 1
                         else:
                             new_num = 1
@@ -338,8 +341,8 @@ if page == "Main":
                 st.write(f"**Footwear:** {foot_details['model'].values[0]} - {foot_details['type'].values[0]} ({foot_details['color'].values[0]})")
             st.write(f"**Chosen Season:** {', '.join(combo['season_match'])}")
             st.write(f"**Chosen Style:** {', '.join(combo['style_match'])}")
-            with st.form("rating_form"):
-                rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
+            with st.form(key="rating_form"):
+                rating = st.slider("Rate this combination (0-10)", 0, 10, 5, key="rating")
                 save_rating = st.form_submit_button("Save Rating")
                 if save_rating:
                     new_combo = combo.copy()
