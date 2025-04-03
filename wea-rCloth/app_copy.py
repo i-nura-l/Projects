@@ -18,16 +18,20 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ------------------------- AUTHENTICATION FUNCTIONS -------------------------
 def sign_up(name, email, password):
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    data = {"name": name, "email": email, "password": hashed, "role": "user"}
-    result = supabase.table("user_data").insert(data).execute()
-    result_dict = result.dict()
-    if result_dict.get("error"):
-        st.error(result_dict["error"]["message"])
+    try:
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        data = {"name": name, "email": email, "password": hashed, "role": "user"}
+        result = supabase.table("user_data").insert(data).execute()
+        result_dict = result.dict()
+        if result_dict.get("error"):
+            st.error(result_dict["error"]["message"])
+            return None
+        else:
+            st.success("Account created successfully! Please sign in.")
+            return result_dict.get("data")
+    except Exception as e:
+        st.error(f"Sign up failed: {e}")
         return None
-    else:
-        st.success("Account created successfully! Please sign in.")
-        return result_dict.get("data")
 
 def sign_in(email, password):
     result = supabase.table("user_data").select("*").eq("email", email).execute()
@@ -42,12 +46,12 @@ def sign_in(email, password):
         st.error("Invalid credentials")
         return None
 
-
 def login_signup_page():
-    st.title("👕 wea-rCloth Login")
-    if 'user_info' not in st.session_state:
-        st.session_state.user_info = None
+    # If user is already logged in, skip showing the login/sign up forms.
+    if st.session_state.get("user_info"):
+        return
 
+    st.title("👕 wea-rCloth Login")
     option = st.radio("Choose:", ["Login", "Sign Up"])
 
     if option == "Login":
@@ -60,7 +64,7 @@ def login_signup_page():
                 if user:
                     st.session_state.user_info = user
                     st.success(f"Welcome, {user['name']}!")
-                    st.experimental_rerun()
+                    # No experimental_rerun needed—after setting user_info, the main app is loaded.
     else:  # Sign Up
         with st.form("signup_form"):
             name = st.text_input("Name", key="signup_name")
@@ -69,13 +73,13 @@ def login_signup_page():
             submitted = st.form_submit_button("Sign Up")
             if submitted:
                 if sign_up(name, email, password):
-                    st.success("Account created! Please log in.")
-                else:
-                    st.error("User already exists or sign up failed.")
+                    st.success("Account created! Please sign in.")
 
+# At the top level, call login_signup_page then hide it if the user is logged in.
 login_signup_page()
 if not st.session_state.get("user_info"):
     st.stop()
+
 
 # ------------------------- SESSION STATE SETUP -------------------------
 if 'current_combination' not in st.session_state:
