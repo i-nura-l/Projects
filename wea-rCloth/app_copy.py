@@ -13,11 +13,70 @@ SUPABASE_URL = "https://tnrzphomntjzwwgvsvvk.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRucnpwaG9tbnRqend3Z3ZzdnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NTcxNTAsImV4cCI6MjA1OTIzMzE1MH0.GEMCVRhxmw_MHAD4rmaEHoCTOGKhVuYGJo5IyGFte8k"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ------------------------- SESSION STATE SETUP -------------------------
-# Remove login functionality and assign a default user
-if 'user_info' not in st.session_state:
-    st.session_state.user_info = {"id": "guest", "role": "user", "name": "Guest"}
+# ------------------------- AUTHENTICATION FUNCTIONS -------------------------
+def sign_up(name, email, password):
+    try:
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        data = {"name": name, "email": email, "password": hashed, "role": "user"}
+        result = supabase.table("user_data").insert(data).execute()
+        result_dict = result.dict()
+        if result_dict.get("error"):
+            st.error(result_dict["error"]["message"])
+            return None
+        else:
+            st.success("Account created successfully! Please sign in.")
+            return result_dict.get("data")
+    except Exception as e:
+        st.error(f"Sign up failed: {e}")
+        return None
 
+def sign_in(email, password):
+    result = supabase.table("user_data").select("*").eq("email", email).execute()
+    result_dict = result.dict()
+    if result_dict.get("error") or not result_dict.get("data"):
+        st.error("User not found")
+        return None
+    user = result_dict.get("data")[0]
+    if bcrypt.checkpw(password.encode(), user["password"].encode()):
+        return user
+    else:
+        st.error("Invalid credentials")
+        return None
+
+def login_signup_page():
+    # Skip this page if the user is already logged in
+    if st.session_state.get("user_info"):
+        return
+
+    st.title("👕 wea-rCloth Login")
+    option = st.radio("Choose:", ["Login", "Sign Up"])
+
+    if option == "Login":
+        with st.form("login_form"):
+            email = st.text_input("Email", key="login_email")
+            password = st.text_input("Password", type="password", key="login_password")
+            submitted = st.form_submit_button("Login")
+            if submitted:
+                user = sign_in(email, password)
+                if user:
+                    st.session_state.user_info = user
+                    st.success(f"Welcome, {user['name']}!")
+    else:  # Sign Up
+        with st.form("signup_form"):
+            name = st.text_input("Name", key="signup_name")
+            email = st.text_input("Email", key="signup_email")
+            password = st.text_input("Password", type="password", key="signup_password")
+            submitted = st.form_submit_button("Sign Up")
+            if submitted:
+                if sign_up(name, email, password):
+                    st.success("Account created! Please sign in.")
+
+# Call login/signup page and stop if not signed in
+login_signup_page()
+if not st.session_state.get("user_info"):
+    st.stop()
+
+# ------------------------- SESSION STATE SETUP -------------------------
 if 'current_combination' not in st.session_state:
     st.session_state.current_combination = None
 if 'show_rating' not in st.session_state:
@@ -69,7 +128,7 @@ def load_data(user_id, role):
     else:
         combos_df = pd.DataFrame(combo_dict.get("data"))
 
-    # Convert array fields to comma-separated strings for display (if needed)
+    # Convert array fields to comma-separated strings for display
     for col in ['style', 'season']:
         if col in wardrobe_df.columns:
             wardrobe_df[col] = wardrobe_df[col].apply(lambda x: ", ".join(x) if isinstance(x, list) else x)
@@ -79,40 +138,40 @@ def load_data(user_id, role):
     return wardrobe_df, combos_df
 
 def save_data():
-    # Save new clothing item
+    # Save new clothing item using capitalized keys
     if 'new_item' in st.session_state:
         item = st.session_state.new_item
         user_id = st.session_state.user_info["id"]
         data = {
             "user_id": user_id,
-            "model": item['model'],
-            "category": item['category'],
-            "type": item['type'],
-            "style": item['style'],    # stored as an array
-            "color": item['color'],
-            "season": item['season']   # stored as an array
+            "Model": item['Model'],
+            "Category": item['Category'],
+            "Type": item['Type'],
+            "Style": item['Style'],    # stored as an array
+            "Color": item['Color'],
+            "Season": item['Season']   # stored as an array
         }
         response = supabase.table("wardrobe_data").insert(data).execute()
         response_dict = response.dict()
         if response_dict.get("error"):
             st.error(f"Error saving wardrobe item: {response_dict['error']['message']}")
         else:
-            st.success(f"Added {item['model']} to your wardrobe!")
+            st.success(f"Added {item['Model']} to your wardrobe!")
         del st.session_state.new_item
 
-    # Save new outfit combination
+    # Save new outfit combination using capitalized keys
     if 'new_combination' in st.session_state:
         combo = st.session_state.new_combination
         user_id = st.session_state.user_info["id"]
         data = {
             "user_id": user_id,
-            "combination_id": combo['combination_id'],
-            "upper_body": combo['upper_body'],
-            "lower_body": combo['lower_body'],
-            "footwear": combo['footwear'],
-            "season_match": combo['season_match'],  # stored as an array
-            "style_match": combo['style_match'],     # stored as an array
-            "rating": combo['rating']
+            "Combination_ID": combo['Combination_ID'],
+            "Upper_Body": combo['Upper_Body'],
+            "Lower_Body": combo['Lower_Body'],
+            "Footwear": combo['Footwear'],
+            "Season_Match": combo['Season_Match'],  # stored as an array
+            "Style_Match": combo['Style_Match'],     # stored as an array
+            "Rating": combo['Rating']
         }
         response = supabase.table("combination_data").insert(data).execute()
         response_dict = response.dict()
@@ -143,7 +202,7 @@ def update_type_options():
     else:
         st.session_state.type_options = []
 
-# Load data for the default user
+# Load data for the signed-in user
 user = st.session_state.user_info
 wardrobe_df, combinations_df = load_data(user["id"], user["role"])
 
@@ -182,10 +241,9 @@ if page == "Main":
                 default=["Universal"]
             )
 
-            # Use lower-case column names for consistency with the database
             existing_items = wardrobe_df[
-                (wardrobe_df['category'] == st.session_state.form_category) &
-                (wardrobe_df['type'] == cloth_type)
+                (wardrobe_df['Category'] == st.session_state.form_category) &
+                (wardrobe_df['Type'] == cloth_type)
             ]
             next_number = len(existing_items) + 1 if not existing_items.empty else 1
 
@@ -198,15 +256,15 @@ if page == "Main":
 
             st.write(f"Generated Model ID: {model}")
 
-            add_button = st.form_submit_button("Add to Wardrobe")
-            if add_button:
+            submitted = st.form_submit_button("Add to Wardrobe")
+            if submitted:
                 new_item = {
-                    'model': model,
-                    'category': st.session_state.form_category,
-                    'type': cloth_type,
-                    'style': selected_style,
-                    'color': color,
-                    'season': selected_season
+                    'Model': model,
+                    'Category': st.session_state.form_category,
+                    'Type': cloth_type,
+                    'Style': selected_style,
+                    'Color': color,
+                    'Season': selected_season
                 }
                 wardrobe_df = pd.concat([wardrobe_df, pd.DataFrame([new_item])], ignore_index=True)
                 st.session_state.new_item = new_item
@@ -220,12 +278,12 @@ if page == "Main":
             chosen_season = st.selectbox(
                 "Choose Season",
                 ["Winter", "Vernal", "Summer", "Autumn", "Universal"],
-                index=4
+                index=4  # default to "Universal"
             )
             chosen_style = st.selectbox(
                 "Choose Style",
                 ["Casual", "Formal", "Trendy", "Universal"],
-                index=3
+                index=3  # default to "Universal"
             )
             generate_button = st.form_submit_button("Generate Outfit")
 
@@ -248,16 +306,16 @@ if page == "Main":
                     return ("Universal" in item_style_list) or (style_choice in item_style_list)
 
                 valid_items = wardrobe_df[
-                    wardrobe_df['season'].apply(lambda x: matches_season(x, chosen_season)) &
-                    wardrobe_df['style'].apply(lambda x: matches_style(x, chosen_style))
+                    wardrobe_df['Season'].apply(lambda x: matches_season(x, chosen_season)) &
+                    wardrobe_df['Style'].apply(lambda x: matches_style(x, chosen_style))
                 ]
 
                 if valid_items.empty:
                     st.error("No items match your chosen Season/Style. Please add more clothes or change filters.")
                 else:
-                    upper_df = valid_items[valid_items['category'] == 'Upper body']
-                    lower_df = valid_items[valid_items['category'] == 'Lower body']
-                    foot_df  = valid_items[valid_items['category'] == 'Footwear']
+                    upper_df = valid_items[valid_items['Category'] == 'Upper body']
+                    lower_df = valid_items[valid_items['Category'] == 'Lower body']
+                    foot_df  = valid_items[valid_items['Category'] == 'Footwear']
 
                     if upper_df.empty or lower_df.empty or foot_df.empty:
                         st.error("Not enough items in all categories to build a complete outfit!")
@@ -266,23 +324,27 @@ if page == "Main":
                         lower_item = lower_df.sample(1).iloc[0]
                         shoe_item  = foot_df.sample(1).iloc[0]
 
-                        if not combinations_df.empty and 'combination_id' in combinations_df.columns:
+                        if not combinations_df.empty and 'Combination_ID' in combinations_df.columns:
                             existing_codes = [
-                                code for code in combinations_df['combination_id']
+                                code for code in combinations_df['Combination_ID']
                                 if isinstance(code, str) and code.startswith('C')
                             ]
-                            new_num = max(int(code[1:]) for code in existing_codes) + 1 if existing_codes else 1
+                            if existing_codes:
+                                max_num = max(int(code[1:]) for code in existing_codes)
+                                new_num = max_num + 1
+                            else:
+                                new_num = 1
                         else:
                             new_num = 1
                         combination_id = f"C{new_num:03d}"
 
                         st.session_state.current_combination = {
-                            'combination_id': combination_id,
-                            'upper_body': upper_item['model'],
-                            'lower_body': lower_item['model'],
-                            'footwear': shoe_item['model'],
-                            'season_match': [chosen_season],
-                            'style_match': [chosen_style]
+                            'Combination_ID': combination_id,
+                            'Upper_Body': upper_item['Model'],
+                            'Lower_Body': lower_item['Model'],
+                            'Footwear': shoe_item['Model'],
+                            'Season_Match': [chosen_season],
+                            'Style_Match': [chosen_style]
                         }
                         st.session_state.show_rating = True
 
@@ -292,90 +354,111 @@ if page == "Main":
         if st.session_state.show_rating and st.session_state.current_combination:
             combo = st.session_state.current_combination
 
-            upper_details = wardrobe_df[wardrobe_df['model'] == combo['upper_body']]
-            lower_details = wardrobe_df[wardrobe_df['model'] == combo['lower_body']]
-            foot_details  = wardrobe_df[wardrobe_df['model'] == combo['footwear']]
+            upper_details = wardrobe_df[wardrobe_df['Model'] == combo['Upper_Body']]
+            lower_details = wardrobe_df[wardrobe_df['Model'] == combo['Lower_Body']]
+            foot_details  = wardrobe_df[wardrobe_df['Model'] == combo['Footwear']]
 
             st.subheader("Your Outfit Combination:")
 
             if not upper_details.empty:
-                st.write(f"**Upper Body:** {upper_details['model'].values[0]} - "
-                         f"{upper_details['type'].values[0]} ({upper_details['color'].values[0]})")
+                st.write(f"**Upper Body:** {upper_details['Model'].values[0]} - "
+                         f"{upper_details['Type'].values[0]} ({upper_details['Color'].values[0]})")
             if not lower_details.empty:
-                st.write(f"**Lower Body:** {lower_details['model'].values[0]} - "
-                         f"{lower_details['type'].values[0]} ({lower_details['color'].values[0]})")
+                st.write(f"**Lower Body:** {lower_details['Model'].values[0]} - "
+                         f"{lower_details['Type'].values[0]} ({lower_details['Color'].values[0]})")
             if not foot_details.empty:
-                st.write(f"**Footwear:** {foot_details['model'].values[0]} - "
-                         f"{foot_details['type'].values[0]} ({foot_details['color'].values[0]})")
+                st.write(f"**Footwear:** {foot_details['Model'].values[0]} - "
+                         f"{foot_details['Type'].values[0]} ({foot_details['Color'].values[0]})")
 
-            st.write(f"**Chosen Season:** {', '.join(combo['season_match'])}")
-            st.write(f"**Chosen Style:** {', '.join(combo['style_match'])}")
+            st.write(f"**Chosen Season:** {', '.join(combo['Season_Match'])}")
+            st.write(f"**Chosen Style:** {', '.join(combo['Style_Match'])}")
 
             with st.form("rating_form"):
                 rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
                 save_rating = st.form_submit_button("Save Rating")
                 if save_rating:
                     new_combination = combo.copy()
-                    new_combination['rating'] = rating
+                    new_combination['Rating'] = rating
                     st.session_state.new_combination = new_combination
                     save_data()
 
-# ------------------------- PAGE: WARDROBE -------------------------
+# ---------------------------------------------------------------------------
+# PAGE: WARDROBE
+# ---------------------------------------------------------------------------
 elif page == "Wardrobe":
     st.title("Your Wardrobe")
     st.sidebar.subheader("Filter Options")
-    filter_category = st.sidebar.multiselect("Category", wardrobe_df['category'].unique().tolist() if not wardrobe_df.empty else [])
-    filter_style = st.sidebar.multiselect("Style", get_unique_values(wardrobe_df, 'style'))
-    filter_season = st.sidebar.multiselect("Season", get_unique_values(wardrobe_df, 'season'))
+    filter_category = st.sidebar.multiselect(
+        "Category",
+        wardrobe_df['Category'].unique().tolist() if not wardrobe_df.empty else []
+    )
+    filter_style = st.sidebar.multiselect("Style", get_unique_values(wardrobe_df, 'Style'))
+    filter_season = st.sidebar.multiselect("Season", get_unique_values(wardrobe_df, 'Season'))
     filtered_df = wardrobe_df.copy()
     if filter_category:
-        filtered_df = filtered_df[filtered_df['category'].isin(filter_category)]
-    if filter_style:
-        filtered_df = filtered_df[filtered_df['style'].apply(lambda x: any(s in str(x) for s in filter_style) if pd.notna(x) else False)]
-    if filter_season:
-        filtered_df = filtered_df[filtered_df['season'].apply(lambda x: any(s in str(x) for s in filter_season) if pd.notna(x) else False)]
+        filtered_df = filtered_df[filtered_df['Category'].isin(filter_category)]
+    if filter_style and 'Style' in filtered_df.columns:
+        filtered_df = filtered_df[
+            filtered_df['Style'].apply(lambda x: any(s in str(x) for s in filter_style) if pd.notna(x) else False)
+        ]
+    if filter_season and 'Season' in filtered_df.columns:
+        filtered_df = filtered_df[
+            filtered_df['Season'].apply(lambda x: any(s in str(x) for s in filter_season) if pd.notna(x) else False)
+        ]
     if not filtered_df.empty:
         st.dataframe(filtered_df)
         st.write(f"Showing {len(filtered_df)} of {len(wardrobe_df)} items")
     else:
         st.info("No items in your wardrobe yet. Add some from the Main page!")
 
-# ------------------------- PAGE: COMBINATIONS -------------------------
+# ---------------------------------------------------------------------------
+# PAGE: COMBINATIONS
+# ---------------------------------------------------------------------------
 elif page == "Combinations":
     st.title("Combination Records")
     st.sidebar.subheader("Filter Options for Combinations")
-    unique_seasons = get_unique_values(combinations_df, "season_match")
-    unique_styles = get_unique_values(combinations_df, "style_match")
+    unique_seasons = get_unique_values(combinations_df, "Season_Match")
+    unique_styles = get_unique_values(combinations_df, "Style_Match")
     filter_season = st.sidebar.multiselect("Season", unique_seasons)
     filter_style = st.sidebar.multiselect("Style", unique_styles)
     rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
     combo_filtered_df = combinations_df.copy()
     def filter_list_field(cell, selected_options):
-        if isinstance(cell, str):
+        if isinstance(cell, list):
+            return any(item in cell for item in selected_options)
+        elif isinstance(cell, str):
             items = [i.strip() for i in cell.split(',')]
             return any(item in items for item in selected_options)
         return False
     if filter_season:
-        combo_filtered_df = combo_filtered_df[combo_filtered_df["season_match"].apply(lambda x: filter_list_field(x, filter_season))]
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Season_Match"].apply(lambda x: filter_list_field(x, filter_season))
+        ]
     if filter_style:
-        combo_filtered_df = combo_filtered_df[combo_filtered_df["style_match"].apply(lambda x: filter_list_field(x, filter_style))]
-    if "rating" in combo_filtered_df.columns:
-        combo_filtered_df = combo_filtered_df[combo_filtered_df["rating"].apply(lambda x: x is not None and rating_range[0] <= x <= rating_range[1])]
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Style_Match"].apply(lambda x: filter_list_field(x, filter_style))
+        ]
+    if "Rating" in combo_filtered_df.columns:
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Rating"].apply(lambda x: x is not None and rating_range[0] <= x <= rating_range[1])
+        ]
     st.dataframe(combo_filtered_df)
     st.write(f"Showing {len(combo_filtered_df)} of {len(combinations_df)} combination records.")
     if not combinations_df.empty:
         st.subheader("Combination Ratings Analysis")
         fig, ax = plt.subplots(figsize=(10, 6))
-        sns.histplot(combinations_df['rating'], bins=11, kde=True, ax=ax)
+        sns.histplot(combinations_df['Rating'], bins=11, kde=True, ax=ax)
         ax.set_title('Distribution of Outfit Ratings')
         ax.set_xlabel('Rating')
         ax.set_ylabel('Count')
         st.pyplot(fig)
         st.subheader("Top Rated Combinations")
-        top_combinations = combinations_df.sort_values('rating', ascending=False).head(5)
+        top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
         st.dataframe(top_combinations)
 
-# ------------------------- PAGE: ANALYSIS -------------------------
+# ---------------------------------------------------------------------------
+# PAGE: ANALYSIS
+# ---------------------------------------------------------------------------
 elif page == "Analysis":
     st.title("Wardrobe Analysis")
     if wardrobe_df.empty:
@@ -383,7 +466,7 @@ elif page == "Analysis":
     else:
         viz_type = st.selectbox("Select Visualization Type", ["Pie Chart", "Bar Chart", "Line Chart", "Scatter Plot"])
         if viz_type in ["Pie Chart", "Bar Chart", "Line Chart"]:
-            dimension = st.selectbox("Select Data Dimension", ["category", "type", "style", "color", "season"])
+            dimension = st.selectbox("Select Data Dimension", ["Category", "Type", "Style", "Color", "Season"])
             fig, ax = plt.subplots(figsize=(10, 6))
             if viz_type == "Pie Chart":
                 counts = wardrobe_df[dimension].value_counts()
@@ -405,9 +488,9 @@ elif page == "Analysis":
         elif viz_type == "Scatter Plot":
             colA, colB = st.columns(2)
             with colA:
-                x_dimension = st.selectbox("X-Axis", ["category", "type", "style", "color", "season"])
+                x_dimension = st.selectbox("X-Axis", ["Category", "Type", "Style", "Color", "Season"])
             with colB:
-                y_dimension = st.selectbox("Y-Axis", ["category", "type", "style", "color", "season"])
+                y_dimension = st.selectbox("Y-Axis", ["Category", "Type", "Style", "Color", "Season"])
             fig, ax = plt.subplots(figsize=(10, 6))
             wardrobe_encoded = wardrobe_df.copy()
             for dim in [x_dimension, y_dimension]:
@@ -433,16 +516,18 @@ elif page == "Analysis":
         if not combinations_df.empty:
             st.subheader("Combination Ratings Analysis")
             fig, ax = plt.subplots(figsize=(10, 6))
-            sns.histplot(combinations_df['rating'], bins=11, kde=True, ax=ax)
+            sns.histplot(combinations_df['Rating'], bins=11, kde=True, ax=ax)
             ax.set_title('Distribution of Outfit Ratings')
             ax.set_xlabel('Rating')
             ax.set_ylabel('Count')
             st.pyplot(fig)
             st.subheader("Top Rated Combinations")
-            top_combinations = combinations_df.sort_values('rating', ascending=False).head(5)
+            top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
             st.dataframe(top_combinations)
 
-# ------------------------- PAGE: ABOUT -------------------------
+# ---------------------------------------------------------------------------
+# PAGE: ABOUT
+# ---------------------------------------------------------------------------
 elif page == "About":
     st.title("About wea-rCloth")
     st.markdown("""
