@@ -1,0 +1,13 @@
+streamlit
+
+psycopg2-binary
+bcrypt
+
+pandas
+matplotlib
+seaborn
+
+pyairtable
+airtable-python-wrapper
+
+supabase
