@@ -8,7 +8,7 @@ from airtable_utils import WARDROBE_TABLE
 def wardrobe_edit_interface(email):
     st.title("🧺 My Wardrobe")
 
-    # Load all user clothes
+    # Load all wardrobe records
     all_items = WARDROBE_TABLE.all()
     user_items = [r for r in all_items if r['fields'].get('User_Email') == email]
 
