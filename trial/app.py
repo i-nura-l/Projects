@@ -11,8 +11,40 @@ from wardrobe_helpers import get_unique_values, matches_season, matches_style
 from ui_components import display_outfit_combo, clothing_form, rating_form
 from state_management import init_session_state, update_type_options
 
+def apply_theme(theme):
+    dark_mode_css = """
+        <style>
+        html, body, [class*="css"] {
+            background-color: #0e1117;
+            color: #ffffff;
+        }
+        .stButton>button {
+            background-color: #262730;
+            color: white;
+        }
+        .stSelectbox div, .stTextInput input {
+            background-color: #1e2026;
+            color: white;
+        }
+        </style>
+    """
+    light_mode_css = """
+        <style>
+        html, body, [class*="css"] {
+            background-color: #ffffff;
+            color: #000000;
+        }
+        </style>
+    """
+    st.markdown(dark_mode_css if theme == "Dark" else light_mode_css, unsafe_allow_html=True)
+
+
 st.set_page_config(page_title="wea-rCloth", layout="wide")
 init_session_state()
+
+theme = st.sidebar.radio("Theme", ["Light", "Dark"], index=1)
+apply_theme(theme)
+
 
 wardrobe_df, combinations_df = load_data()
 
