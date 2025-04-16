@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from auth_ui import require_login, logout_button
+from profile_ui import profile_dashboard
+
 
 
 from constants import CUSTOM_TYPES, STYLE_OPTIONS, SEASON_OPTIONS, CATEGORY_OPTIONS
@@ -52,7 +54,7 @@ init_session_state()
 wardrobe_df, combinations_df = load_data()
 
 st.sidebar.title("wea-rCloth")
-page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "About"])
+page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "Profile", "About"])
 
 # MAIN PAGE
 if page == "Main":
@@ -281,6 +283,11 @@ elif page == "Analysis":
             ax.set_ylabel(y_dimension)
             ax.set_title(f'{y_dimension} vs {x_dimension}')
             st.pyplot(fig)
+
+
+# Profile Page
+elif page == "Profile":
+    profile_dashboard()
 
 # ----------------------------
 # ABOUT PAGE
