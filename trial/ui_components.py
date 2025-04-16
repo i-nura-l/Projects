@@ -3,7 +3,6 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
 
 def display_outfit_combo(combo, wardrobe_df):
     st.subheader("Your Outfit Combination:")
@@ -18,7 +17,6 @@ def display_outfit_combo(combo, wardrobe_df):
 
             st.markdown(f"**{part.replace('_', ' ')}:** {model} - {type_} ({color})")
 
-            # ✅ SAFETY CHECK BEFORE RENDERING IMAGE
             if image_url and isinstance(image_url, str) and os.path.exists(image_url):
                 try:
                     st.image(image_url, width=200)
@@ -27,6 +25,8 @@ def display_outfit_combo(combo, wardrobe_df):
             else:
                 st.info("No image available.")
 
+    st.write(f"**Chosen Season:** {', '.join(combo['Season_Match'])}")
+    st.write(f"**Chosen Style:** {', '.join(combo['Style_Match'])}")
 
 def clothing_form(type_options, style_options, season_options, form_category, wardrobe_df):
     with st.form("new_cloth_form"):
@@ -35,7 +35,6 @@ def clothing_form(type_options, style_options, season_options, form_category, wa
         color = st.text_input("Color")
         selected_season = st.multiselect("Season", season_options, default=["Universal"])
 
-        # 🆕 Image uploader
         uploaded_image = st.file_uploader("Upload Image (optional)", type=["png", "jpg", "jpeg"])
 
         existing_items = wardrobe_df[
@@ -54,10 +53,10 @@ def clothing_form(type_options, style_options, season_options, form_category, wa
 
         submitted = st.form_submit_button("Add to Wardrobe")
         if submitted:
-            # Save image if uploaded
             image_path = ""
             if uploaded_image is not None:
                 os.makedirs("images", exist_ok=True)
+                from datetime import datetime
                 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
                 filename = f"{model}_{timestamp}.jpg"
                 image_path = os.path.join("images", filename)
@@ -71,7 +70,8 @@ def clothing_form(type_options, style_options, season_options, form_category, wa
                 'Style': selected_style,
                 'Color': color,
                 'Season': selected_season,
-                'Image_URL': image_path if uploaded_image else ""
+                'Image_URL': image_path if uploaded_image else "",
+                'User_Email': st.session_state.user['email']
             }
             return new_item
     return None
@@ -79,9 +79,12 @@ def clothing_form(type_options, style_options, season_options, form_category, wa
 def rating_form(combo):
     with st.form("rating_form"):
         rating = st.slider("Rate this combination (0-10)", 0, 10, 5)
+        is_fav = st.checkbox("❤️ Mark as Favorite")
         save_rating = st.form_submit_button("Save Rating")
         if save_rating:
             new_combination = combo.copy()
             new_combination['Rating'] = rating
+            new_combination['Favorite'] = is_fav
+            new_combination['User_Email'] = st.session_state.user['email']
             return new_combination
     return None

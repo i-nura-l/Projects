@@ -47,7 +47,7 @@ def profile_dashboard():
 
     st.markdown("---")
     st.subheader("❤️ Favorite Combinations")
-    favs = [r for r in combos if r['fields'].get('Favorite') == True]
+    favs = [r for r in combos if r['fields'].get('Favorite') is True]
 
     if favs:
         df = pd.DataFrame([r['fields'] for r in favs])

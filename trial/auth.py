@@ -19,11 +19,17 @@ def check_password(password, hashed):
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 def email_exists(email):
-    records = USER_TABLE.all()
+    try:
+        records = USER_TABLE.all()
+    except Exception as e:
+        st.error(f"Error accessing user table: {e}")
+        return None
+
     for rec in records:
         if rec.get('fields', {}).get('Email', '').lower() == email.lower():
             return rec
     return None
+
 
 def signup_user(email, password):
     if email_exists(email):

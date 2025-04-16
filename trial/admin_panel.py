@@ -2,6 +2,7 @@
 
 import streamlit as st
 from pyairtable import Table
+from pyairtable.formulas import match
 
 USER_TABLE = Table(
     'patO49KbikvJl3JCT.bcc975992a1f9821a40d6341ffc296bbef4eb9f19c0fb1811e4e159f7de223ea',
@@ -42,21 +43,36 @@ def admin_panel():
 
         if st.button("❌ Delete this user and all data"):
             try:
-                # Delete wardrobe items
                 wardrobe = WARDROBE_TABLE.all()
                 for item in wardrobe:
                     if item['fields'].get('User_Email') == selected_email:
                         WARDROBE_TABLE.delete(item['id'])
 
-                # Delete combinations
                 combos = COMBINATIONS_TABLE.all()
                 for combo in combos:
                     if combo['fields'].get('User_Email') == selected_email:
                         COMBINATIONS_TABLE.delete(combo['id'])
 
-                # Delete user
                 USER_TABLE.delete(selected_user['id'])
                 st.success("User and all associated data deleted.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Failed to delete user: {e}")
+
+    st.subheader("⭐ Toggle Favorites in Combos")
+    combos = COMBINATIONS_TABLE.all()
+    for combo in combos:
+        fields = combo.get("fields", {})
+        combo_id = fields.get("Combination_ID", "Unknown")
+        is_fav = fields.get("Favorite", False)
+
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.write(f"{combo_id}: {fields.get('Upper_Body')} / {fields.get('Lower_Body')} / {fields.get('Footwear')}")
+        with col2:
+            if st.button("⭐" if is_fav else "☆", key=combo["id"]):
+                try:
+                    COMBINATIONS_TABLE.update(combo["id"], {"Favorite": not is_fav})
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to update favorite: {e}")
