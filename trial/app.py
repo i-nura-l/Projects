@@ -103,4 +103,170 @@ if page == "Main":
                 st.session_state.new_combination = new_combination
                 save_data(st.session_state)
 
-# ... (repeat for "Wardrobe", "Combinations", "Analysis", "About" pages, moving helper logic into modules as above)
+
+# ----------------------------
+# WARDROBE PAGE
+# ----------------------------
+if page == "Wardrobe":
+    st.title("Your Wardrobe")
+    st.sidebar.subheader("Filter Options")
+    filter_category = st.sidebar.multiselect("Category", wardrobe_df['Category'].unique().tolist())
+    filter_style = st.sidebar.multiselect("Style", get_unique_values(wardrobe_df, 'Style'))
+    filter_season = st.sidebar.multiselect("Season", get_unique_values(wardrobe_df, 'Season'))
+
+    filtered_df = wardrobe_df.copy()
+    if filter_category:
+        filtered_df = filtered_df[filtered_df['Category'].isin(filter_category)]
+    if filter_style:
+        filtered_df = filtered_df[
+            filtered_df['Style'].apply(lambda x: any(s in str(x) for s in filter_style))
+        ]
+    if filter_season:
+        filtered_df = filtered_df[
+            filtered_df['Season'].apply(lambda x: any(s in str(x) for s in filter_season))
+        ]
+
+    if not filtered_df.empty:
+        for _, row in filtered_df.iterrows():
+            st.markdown(f"**{row['Model']}** — {row['Type']} ({row['Color']})")
+            if 'Image_URL' in row and row['Image_URL']:
+                st.image(row['Image_URL'], width=150)
+        st.write(f"Showing {len(filtered_df)} of {len(wardrobe_df)} items")
+    else:
+        st.info("No items found. Try different filters or add new items.")
+
+# ----------------------------
+# COMBINATIONS PAGE
+# ----------------------------
+elif page == "Combinations":
+    st.title("Combination Records")
+    st.sidebar.subheader("Filter Options for Combinations")
+    unique_seasons = get_unique_values(combinations_df, "Season_Match")
+    unique_styles = get_unique_values(combinations_df, "Style_Match")
+    filter_season = st.sidebar.multiselect("Season", unique_seasons)
+    filter_style = st.sidebar.multiselect("Style", unique_styles)
+    rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
+
+    combo_filtered_df = combinations_df.copy()
+
+    def filter_list_field(cell, selected_options):
+        if isinstance(cell, list):
+            return any(item in cell for item in selected_options)
+        elif isinstance(cell, str):
+            items = [i.strip() for i in cell.split(',')]
+            return any(item in items for item in selected_options)
+        return False
+
+    if filter_season:
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Season_Match"].apply(lambda x: filter_list_field(x, filter_season))
+        ]
+    if filter_style:
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Style_Match"].apply(lambda x: filter_list_field(x, filter_style))
+        ]
+    if "Rating" in combo_filtered_df.columns:
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Rating"].apply(
+                lambda x: x is not None and rating_range[0] <= x <= rating_range[1]
+            )
+        ]
+
+    st.dataframe(combo_filtered_df)
+    st.write(f"Showing {len(combo_filtered_df)} of {len(combinations_df)} combination records.")
+
+    if not combinations_df.empty:
+        st.subheader("Combination Ratings Analysis")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(combinations_df['Rating'], bins=11, kde=True, ax=ax)
+        ax.set_title('Distribution of Outfit Ratings')
+        ax.set_xlabel('Rating')
+        ax.set_ylabel('Count')
+        st.pyplot(fig)
+
+        st.subheader("Top Rated Combinations")
+        top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
+        st.dataframe(top_combinations)
+
+# ----------------------------
+# ANALYSIS PAGE
+# ----------------------------
+elif page == "Analysis":
+    st.title("Wardrobe Analysis")
+    if wardrobe_df.empty:
+        st.info("Add some items to your wardrobe to see analysis!")
+    else:
+        viz_type = st.selectbox("Select Visualization Type", ["Pie Chart", "Bar Chart", "Line Chart", "Scatter Plot"])
+
+        if viz_type in ["Pie Chart", "Bar Chart", "Line Chart"]:
+            dimension = st.selectbox("Select Data Dimension", ["Category", "Type", "Style", "Color", "Season"])
+            fig, ax = plt.subplots(figsize=(10, 6))
+
+            counts = wardrobe_df[dimension].value_counts()
+            if viz_type == "Pie Chart":
+                ax.pie(counts, labels=counts.index, autopct='%1.1f%%')
+            elif viz_type == "Bar Chart":
+                counts.plot(kind='bar', ax=ax)
+            elif viz_type == "Line Chart":
+                counts.plot(kind='line', marker='o', ax=ax)
+
+            ax.set_title(f'{dimension} Distribution')
+            st.pyplot(fig)
+
+        elif viz_type == "Scatter Plot":
+            col1, col2 = st.columns(2)
+            with col1:
+                x_dimension = st.selectbox("X-Axis", ["Category", "Type", "Style", "Color", "Season"])
+            with col2:
+                y_dimension = st.selectbox("Y-Axis", ["Category", "Type", "Style", "Color", "Season"])
+
+            fig, ax = plt.subplots(figsize=(10, 6))
+            wardrobe_encoded = wardrobe_df.copy()
+            for dim in [x_dimension, y_dimension]:
+                categories = wardrobe_df[dim].unique()
+                category_map = {cat: i for i, cat in enumerate(categories)}
+                wardrobe_encoded[f"{dim}_encoded"] = wardrobe_df[dim].map(category_map)
+
+            ax.scatter(
+                wardrobe_encoded[f"{x_dimension}_encoded"],
+                wardrobe_encoded[f"{y_dimension}_encoded"],
+                c=wardrobe_encoded[f"{x_dimension}_encoded"],
+                alpha=0.6
+            )
+            ax.set_xticks(range(len(wardrobe_df[x_dimension].unique())))
+            ax.set_xticklabels(wardrobe_df[x_dimension].unique())
+            ax.set_yticks(range(len(wardrobe_df[y_dimension].unique())))
+            ax.set_yticklabels(wardrobe_df[y_dimension].unique())
+            ax.set_xlabel(x_dimension)
+            ax.set_ylabel(y_dimension)
+            ax.set_title(f'{y_dimension} vs {x_dimension}')
+            st.pyplot(fig)
+
+# ----------------------------
+# ABOUT PAGE
+# ----------------------------
+elif page == "About":
+    st.title("About wea-rCloth")
+    st.markdown("""
+    ## Your Smart Wardrobe Assistant
+
+    **wea-rCloth** helps you:
+    - Organize your wardrobe digitally
+    - Generate outfit combinations based on your actual clothing items
+    - Rate and track your favorite combinations
+    - Analyze your wardrobe composition and preferences
+
+    ### How to Use
+    1. Add your clothing items on the Main page
+    2. Generate and rate outfit combinations
+    3. View your entire wardrobe on the Wardrobe page
+    4. See analytics and insights on the Analysis page
+
+    ### Future Features (Coming Soon)
+    - Machine learning recommendations based on your ratings
+    - Image upload for clothing items
+    - Seasonal wardrobe planning
+    - Outfit calendar
+    - Community sharing
+    - Color palette matching
+    """)

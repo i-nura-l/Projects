@@ -2,25 +2,24 @@
 
 import streamlit as st
 import pandas as pd
+import os
+from datetime import datetime
 
 def display_outfit_combo(combo, wardrobe_df):
-    upper_details = wardrobe_df[wardrobe_df['Model'] == combo['Upper_Body']]
-    lower_details = wardrobe_df[wardrobe_df['Model'] == combo['Lower_Body']]
-    foot_details  = wardrobe_df[wardrobe_df['Model'] == combo['Footwear']]
-
     st.subheader("Your Outfit Combination:")
-    if not upper_details.empty:
-        st.write(f"**Upper Body:** {upper_details['Model'].values[0]} - "
-                 f"{upper_details['Type'].values[0]} ({upper_details['Color'].values[0]})")
-    if not lower_details.empty:
-        st.write(f"**Lower Body:** {lower_details['Model'].values[0]} - "
-                 f"{lower_details['Type'].values[0]} ({lower_details['Color'].values[0]})")
-    if not foot_details.empty:
-        st.write(f"**Footwear:** {foot_details['Model'].values[0]} - "
-                 f"{foot_details['Type'].values[0]} ({foot_details['Color'].values[0]})")
 
-    st.write(f"**Chosen Season:** {', '.join(combo['Season_Match'])}")
-    st.write(f"**Chosen Style:** {', '.join(combo['Style_Match'])}")
+    for part in ['Upper_Body', 'Lower_Body', 'Footwear']:
+        item = wardrobe_df[wardrobe_df['Model'] == combo[part]]
+        if not item.empty:
+            model = item['Model'].values[0]
+            type_ = item['Type'].values[0]
+            color = item['Color'].values[0]
+            image_url = item.get('Image_URL', [""]).values[0]
+
+            st.markdown(f"**{part.replace('_', ' ')}:** {model} - {type_} ({color})")
+            if image_url:
+                st.image(image_url, width=200)
+
 
 def clothing_form(type_options, style_options, season_options, form_category, wardrobe_df):
     with st.form("new_cloth_form"):
@@ -28,6 +27,9 @@ def clothing_form(type_options, style_options, season_options, form_category, wa
         selected_style = st.multiselect("Style", style_options, default=["Casual"])
         color = st.text_input("Color")
         selected_season = st.multiselect("Season", season_options, default=["Universal"])
+
+        # 🆕 Image uploader
+        uploaded_image = st.file_uploader("Upload Image (optional)", type=["png", "jpg", "jpeg"])
 
         existing_items = wardrobe_df[
             (wardrobe_df['Category'] == form_category) &
@@ -45,13 +47,24 @@ def clothing_form(type_options, style_options, season_options, form_category, wa
 
         submitted = st.form_submit_button("Add to Wardrobe")
         if submitted:
+            # Save image if uploaded
+            image_path = ""
+            if uploaded_image is not None:
+                os.makedirs("images", exist_ok=True)
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                filename = f"{model}_{timestamp}.jpg"
+                image_path = os.path.join("images", filename)
+                with open(image_path, "wb") as f:
+                    f.write(uploaded_image.getbuffer())
+
             new_item = {
                 'Model': model,
                 'Category': form_category,
                 'Type': cloth_type,
                 'Style': selected_style,
                 'Color': color,
-                'Season': selected_season
+                'Season': selected_season,
+                'Image_URL': image_path if uploaded_image else ""
             }
             return new_item
     return None
