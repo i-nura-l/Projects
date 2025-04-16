@@ -130,7 +130,12 @@ if page == "Wardrobe":
         for _, row in filtered_df.iterrows():
             st.markdown(f"**{row['Model']}** — {row['Type']} ({row['Color']})")
             if 'Image_URL' in row and row['Image_URL']:
-                st.image(row['Image_URL'], width=150)
+                if 'Image_URL' in row and row['Image_URL']:
+                    try:
+                        st.image(row['Image_URL'], width=150)
+                    except Exception as e:
+                        st.warning(f"Couldn't load image for {row['Model']}: {e}")
+
         st.write(f"Showing {len(filtered_df)} of {len(wardrobe_df)} items")
     else:
         st.info("No items found. Try different filters or add new items.")
