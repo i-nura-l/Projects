@@ -164,7 +164,9 @@ elif page == "Combinations":
     filter_style = st.sidebar.multiselect("Style", unique_styles)
     rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
 
-    combo_filtered_df = combinations_df.copy()
+    user_email = st.session_state.user['email']
+    combo_filtered_df = combinations_df[combinations_df['User_Email'] == user_email].copy()
+
 
     def filter_list_field(cell, selected_options):
         if isinstance(cell, list):
@@ -192,17 +194,17 @@ elif page == "Combinations":
     st.dataframe(combo_filtered_df)
     st.write(f"Showing {len(combo_filtered_df)} of {len(combinations_df)} combination records.")
 
-    if not combinations_df.empty:
+    if not combo_filtered_df.empty:
         st.subheader("Combination Ratings Analysis")
         fig, ax = plt.subplots(figsize=(10, 6))
-        sns.histplot(combinations_df['Rating'], bins=11, kde=True, ax=ax)
+        sns.histplot(combo_filtered_df['Rating'], bins=11, kde=True, ax=ax)
+        top_combinations = combo_filtered_df.sort_values('Rating', ascending=False).head(5)
         ax.set_title('Distribution of Outfit Ratings')
         ax.set_xlabel('Rating')
         ax.set_ylabel('Count')
         st.pyplot(fig)
 
         st.subheader("Top Rated Combinations")
-        top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
         st.dataframe(top_combinations)
 
 # ----------------------------

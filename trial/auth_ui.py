@@ -55,6 +55,6 @@ def logout_button():
 
 
 def filter_user_data(df, email):
-    if df is not None and 'User_Email' in df.columns:
-        return df[df['User_Email'] == email]
-    return df
+    if df is not None and not df.empty and 'User_Email' in df.columns:
+        return df[df['User_Email'] == email].reset_index(drop=True)
+    return pd.DataFrame()
