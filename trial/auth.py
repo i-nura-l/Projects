@@ -41,7 +41,7 @@ def signup_user(email, password):
             'Email': email,
             'Password_Hash': password_hash,
             'Status': 'New user',
-            'Created_At': datetime.utcnow().isoformat()
+            'Created_At': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
         })
         return True, "Account created successfully."
     except Exception as e:
