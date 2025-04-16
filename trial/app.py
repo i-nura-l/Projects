@@ -157,12 +157,6 @@ elif page == "Wardrobe":
 # ----------------------------
 elif page == "Combinations":
     st.title("Combination Records")
-    st.sidebar.subheader("Filter Options for Combinations")
-    unique_seasons = get_unique_values(combinations_df, "Season_Match")
-    unique_styles = get_unique_values(combinations_df, "Style_Match")
-    filter_season = st.sidebar.multiselect("Season", unique_seasons)
-    filter_style = st.sidebar.multiselect("Style", unique_styles)
-    rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
 
     user_email = st.session_state.user['email']
     if not combinations_df.empty and 'User_Email' in combinations_df.columns:
@@ -170,45 +164,57 @@ elif page == "Combinations":
     else:
         combo_filtered_df = pd.DataFrame()
 
+    if combo_filtered_df.empty:
+        st.info("You don't have any combinations yet.")
 
-    def filter_list_field(cell, selected_options):
-        if isinstance(cell, list):
-            return any(item in cell for item in selected_options)
-        elif isinstance(cell, str):
-            items = [i.strip() for i in cell.split(',')]
-            return any(item in items for item in selected_options)
-        return False
+        if st.button("✨ Generate Your First Combination"):
+            st.sidebar.selectbox("Navigation", ["Main"], index=0)
+            st.rerun()
 
-    if filter_season:
-        combo_filtered_df = combo_filtered_df[
-            combo_filtered_df["Season_Match"].apply(lambda x: filter_list_field(x, filter_season))
-        ]
-    if filter_style:
-        combo_filtered_df = combo_filtered_df[
-            combo_filtered_df["Style_Match"].apply(lambda x: filter_list_field(x, filter_style))
-        ]
-    if "Rating" in combo_filtered_df.columns:
-        combo_filtered_df = combo_filtered_df[
-            combo_filtered_df["Rating"].apply(
-                lambda x: x is not None and rating_range[0] <= x <= rating_range[1]
-            )
-        ]
+    else:
+        st.sidebar.subheader("Filter Options for Combinations")
+        unique_seasons = get_unique_values(combo_filtered_df, "Season_Match")
+        unique_styles = get_unique_values(combo_filtered_df, "Style_Match")
+        filter_season = st.sidebar.multiselect("Season", unique_seasons)
+        filter_style = st.sidebar.multiselect("Style", unique_styles)
+        rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
 
-    st.dataframe(combo_filtered_df)
+        def filter_list_field(cell, selected_options):
+            if isinstance(cell, list):
+                return any(item in cell for item in selected_options)
+            elif isinstance(cell, str):
+                items = [i.strip() for i in cell.split(',')]
+                return any(item in items for item in selected_options)
+            return False
 
-    st.write(f"{len(combo_filtered_df)} combination records found.")
+        if filter_season:
+            combo_filtered_df = combo_filtered_df[
+                combo_filtered_df["Season_Match"].apply(lambda x: filter_list_field(x, filter_season))
+            ]
+        if filter_style:
+            combo_filtered_df = combo_filtered_df[
+                combo_filtered_df["Style_Match"].apply(lambda x: filter_list_field(x, filter_style))
+            ]
+        if "Rating" in combo_filtered_df.columns:
+            combo_filtered_df = combo_filtered_df[
+                combo_filtered_df["Rating"].apply(
+                    lambda x: x is not None and rating_range[0] <= x <= rating_range[1]
+                )
+            ]
 
-    if not combo_filtered_df.empty:
+        st.dataframe(combo_filtered_df)
+        st.write(f"Showing {len(combo_filtered_df)} of {len(combo_filtered_df)} combination records.")
+
         st.subheader("Combination Ratings Analysis")
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.histplot(combo_filtered_df['Rating'], bins=11, kde=True, ax=ax)
-        top_combinations = combo_filtered_df.sort_values('Rating', ascending=False).head(5)
         ax.set_title('Distribution of Outfit Ratings')
         ax.set_xlabel('Rating')
         ax.set_ylabel('Count')
         st.pyplot(fig)
 
         st.subheader("Top Rated Combinations")
+        top_combinations = combo_filtered_df.sort_values('Rating', ascending=False).head(5)
         st.dataframe(top_combinations)
 
 # ----------------------------
