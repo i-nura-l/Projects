@@ -52,3 +52,9 @@ def logout_button():
             if st.button("Logout"):
                 del st.session_state.user
                 st.rerun()
+
+
+def filter_user_data(df, email):
+    if df is not None and 'User_Email' in df.columns:
+        return df[df['User_Email'] == email]
+    return df
