@@ -195,7 +195,11 @@ elif page == "Combinations":
         ]
 
     st.dataframe(combo_filtered_df)
-    st.write(f"Showing {len(combo_filtered_df)} of {len(combinations_df)} combination records.")
+
+    if len(combo_filtered_df) != len(combinations_df):
+        st.write(f"Showing {len(combo_filtered_df)} of {len(combinations_df)} combination records.")
+    else:
+        st.write(f"Showing {len(combo_filtered_df)} combination records.")
 
     if not combo_filtered_df.empty:
         st.subheader("Combination Ratings Analysis")
