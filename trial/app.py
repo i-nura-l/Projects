@@ -42,12 +42,11 @@ def apply_theme(theme):
 st.set_page_config(page_title="wea-rCloth", layout="wide")
 init_session_state()
 
-theme = st.sidebar.radio("Theme", ["Light", "Dark"], index=1)
-apply_theme(theme)
-
 
 wardrobe_df, combinations_df = load_data()
 
+st.sidebar.title("wea-rCloth")
+page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "About"])
 
 # MAIN PAGE
 if page == "Main":
@@ -304,7 +303,9 @@ elif page == "About":
     - Outfit calendar
     - Community sharing
     - Color palette matching
-    """
+    """)
 
-st.sidebar.title("wea-rCloth")
-page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "About"])
+
+
+theme = st.sidebar.radio("Theme", ["Light", "Dark"], index=1)
+apply_theme(theme)
