@@ -164,48 +164,71 @@ elif page == "Combinations":
     else:
         combo_filtered_df = pd.DataFrame()
 
+    st.sidebar.subheader("Filter Options for Combinations")
+    unique_seasons = get_unique_values(combinations_df, "Season_Match")
+    unique_styles = get_unique_values(combinations_df, "Style_Match")
+    filter_season = st.sidebar.multiselect("Season", unique_seasons)
+    filter_style = st.sidebar.multiselect("Style", unique_styles)
+    rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
+
+    def filter_list_field(cell, selected_options):
+        if isinstance(cell, list):
+            return any(item in cell for item in selected_options)
+        elif isinstance(cell, str):
+            items = [i.strip() for i in cell.split(',')]
+            return any(item in items for item in selected_options)
+        return False
+
+    if filter_season:
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Season_Match"].apply(lambda x: filter_list_field(x, filter_season))
+        ]
+    if filter_style:
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Style_Match"].apply(lambda x: filter_list_field(x, filter_style))
+        ]
+    if "Rating" in combo_filtered_df.columns:
+        combo_filtered_df = combo_filtered_df[
+            combo_filtered_df["Rating"].apply(
+                lambda x: x is not None and rating_range[0] <= x <= rating_range[1]
+            )
+        ]
+
     if combo_filtered_df.empty:
-        st.info("You don't have any combinations yet.")
+        st.info("You don't have any saved combinations matching the selected filters.")
 
-        if st.button("✨ Generate Your First Combination"):
-            st.sidebar.selectbox("Navigation", ["Main"], index=0)
+        wardrobe_df_user = wardrobe_df[wardrobe_df['User_Email'] == user_email]
+
+        st.subheader("🔧 Create a Combination Manually")
+        with st.form("manual_combo_form"):
+            upper_item = st.selectbox("Choose Upper Body", wardrobe_df_user[wardrobe_df_user['Category'] == 'Upper body']['Model'])
+            lower_item = st.selectbox("Choose Lower Body", wardrobe_df_user[wardrobe_df_user['Category'] == 'Lower body']['Model'])
+            footwear_item = st.selectbox("Choose Footwear", wardrobe_df_user[wardrobe_df_user['Category'] == 'Footwear']['Model'])
+            season_match = st.multiselect("Season Match", SEASON_OPTIONS, default=["Universal"])
+            style_match = st.multiselect("Style Match", STYLE_OPTIONS, default=["Universal"])
+            create_btn = st.form_submit_button("Save Combination")
+
+        if create_btn:
+            combo_id = f"C{len(combinations_df)+1:03d}"
+            st.session_state.new_combination = {
+                'Combination_ID': combo_id,
+                'Upper_Body': upper_item,
+                'Lower_Body': lower_item,
+                'Footwear': footwear_item,
+                'Season_Match': season_match,
+                'Style_Match': style_match,
+                'User_Email': user_email,
+                'Rating': 5,
+                'Favorite': False
+            }
+            save_data(st.session_state)
+            st.success("Combination saved!")
             st.rerun()
-
     else:
-        st.sidebar.subheader("Filter Options for Combinations")
-        unique_seasons = get_unique_values(combo_filtered_df, "Season_Match")
-        unique_styles = get_unique_values(combo_filtered_df, "Style_Match")
-        filter_season = st.sidebar.multiselect("Season", unique_seasons)
-        filter_style = st.sidebar.multiselect("Style", unique_styles)
-        rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
-
-        def filter_list_field(cell, selected_options):
-            if isinstance(cell, list):
-                return any(item in cell for item in selected_options)
-            elif isinstance(cell, str):
-                items = [i.strip() for i in cell.split(',')]
-                return any(item in items for item in selected_options)
-            return False
-
-        if filter_season:
-            combo_filtered_df = combo_filtered_df[
-                combo_filtered_df["Season_Match"].apply(lambda x: filter_list_field(x, filter_season))
-            ]
-        if filter_style:
-            combo_filtered_df = combo_filtered_df[
-                combo_filtered_df["Style_Match"].apply(lambda x: filter_list_field(x, filter_style))
-            ]
-        if "Rating" in combo_filtered_df.columns:
-            combo_filtered_df = combo_filtered_df[
-                combo_filtered_df["Rating"].apply(
-                    lambda x: x is not None and rating_range[0] <= x <= rating_range[1]
-                )
-            ]
-
         st.dataframe(combo_filtered_df)
         st.write(f"Showing {len(combo_filtered_df)} of {len(combo_filtered_df)} combination records.")
 
-        st.subheader("Combination Ratings Analysis")
+        st.subheader("📊 Combination Ratings Analysis")
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.histplot(combo_filtered_df['Rating'], bins=11, kde=True, ax=ax)
         ax.set_title('Distribution of Outfit Ratings')
@@ -213,10 +236,9 @@ elif page == "Combinations":
         ax.set_ylabel('Count')
         st.pyplot(fig)
 
-        st.subheader("Top Rated Combinations")
+        st.subheader("🏆 Top Rated Combinations")
         top_combinations = combo_filtered_df.sort_values('Rating', ascending=False).head(5)
         st.dataframe(top_combinations)
-
 # ----------------------------
 # ANALYSIS PAGE
 # ----------------------------
