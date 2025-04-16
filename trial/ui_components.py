@@ -17,8 +17,15 @@ def display_outfit_combo(combo, wardrobe_df):
             image_url = item.get('Image_URL', [""]).values[0]
 
             st.markdown(f"**{part.replace('_', ' ')}:** {model} - {type_} ({color})")
-            if image_url:
-                st.image(image_url, width=200)
+
+            # ✅ SAFETY CHECK BEFORE RENDERING IMAGE
+            if image_url and isinstance(image_url, str) and os.path.exists(image_url):
+                try:
+                    st.image(image_url, width=200)
+                except Exception as e:
+                    st.warning(f"Could not display image for {model}. Error: {e}")
+            else:
+                st.info("No image available.")
 
 
 def clothing_form(type_options, style_options, season_options, form_category, wardrobe_df):
