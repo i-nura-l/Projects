@@ -230,7 +230,38 @@ elif page == "Combinations":
             st.success("Combination saved!")
             st.rerun()
     else:
-        st.dataframe(combo_filtered_df)
+        wardrobe_df_user = wardrobe_df[wardrobe_df['User_Email'] == user_email]
+
+        st.subheader("🔧 Create a Combination Manually")
+        with st.form("manual_combo_form"):
+            upper_item = st.selectbox("Choose Upper Body",
+                                      wardrobe_df_user[wardrobe_df_user['Category'] == 'Upper body']['Model'])
+            lower_item = st.selectbox("Choose Lower Body",
+                                      wardrobe_df_user[wardrobe_df_user['Category'] == 'Lower body']['Model'])
+            footwear_item = st.selectbox("Choose Footwear",
+                                         wardrobe_df_user[wardrobe_df_user['Category'] == 'Footwear']['Model'])
+            season_match = st.multiselect("Season Match", SEASON_OPTIONS, default=["Universal"])
+            style_match = st.multiselect("Style Match", STYLE_OPTIONS, default=["Universal"])
+            create_btn = st.form_submit_button("Save Combination")
+
+        if create_btn:
+            combo_id = f"C{len(combinations_df) + 1:03d}"
+            st.session_state.new_combination = {
+                'Combination_ID': combo_id,
+                'Upper_Body': upper_item,
+                'Lower_Body': lower_item,
+                'Footwear': footwear_item,
+                'Season_Match': season_match,
+                'Style_Match': style_match,
+                'User_Email': user_email,
+                'Rating': 5,
+                'Favorite': False
+            }
+            save_data(st.session_state)
+            st.success("Combination saved!")
+            st.rerun()
+
+        st.dataframe(combo_filtered_df.reset_index(drop=True))
         st.write(f"Showing {len(combo_filtered_df)} of {len(combo_filtered_df)} combination records.")
 
         st.subheader("📊 Combination Ratings Analysis")
