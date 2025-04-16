@@ -34,7 +34,8 @@ def wardrobe_edit_interface(email):
                     "Type": new_type,
                     "Color": new_color,
                     "Style": new_style,
-                    "Season": new_season
+                    "Season": new_season,
+                    "User_Email": email
                 })
                 st.success("Item updated successfully!")
                 st.rerun()

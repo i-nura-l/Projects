@@ -30,8 +30,7 @@ def email_exists(email):
             return rec
     return None
 
-
-def signup_user(email, password):
+def signup_user(email, password, username):
     if email_exists(email):
         return False, "Email already registered."
 
@@ -40,7 +39,8 @@ def signup_user(email, password):
         USER_TABLE.create({
             'Email': email,
             'Password_Hash': password_hash,
-            'Status': 'New user',
+            'Status': 'New User',
+            'Username': username
         })
         return True, "Account created successfully."
     except Exception as e:
@@ -63,6 +63,7 @@ def login_user(email, password):
         'email': rec['fields'].get('Email'),
         'status': rec['fields'].get('Status', 'User'),
         'avatar': rec['fields'].get('Avatar_URL', ''),
-        'created': rec['fields'].get('Created_At')
+        'created': rec['fields'].get('Created_At'),
+        'username': rec['fields'].get('Username', '')
     }
     return user_data, None

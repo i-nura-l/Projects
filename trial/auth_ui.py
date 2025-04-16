@@ -25,12 +25,13 @@ def login_interface():
     st.subheader("Don't have an account?")
 
     with st.form("signup_form"):
+        username = st.text_input("Username")
         new_email = st.text_input("New Email")
         new_password = st.text_input("Create Password", type="password")
         signup = st.form_submit_button("Create Account")
 
         if signup:
-            success, message = signup_user(new_email, new_password)
+            success, message = signup_user(new_email, new_password, username)
             if success:
                 st.success(message)
                 st.rerun()
@@ -47,7 +48,7 @@ def require_login():
 
 def logout_button():
     if 'user' in st.session_state:
-        with st.sidebar.expander(f"👤 {st.session_state.user['email']}"):
+        with st.sidebar.expander(f"👤 {st.session_state.user.get('username', st.session_state.user['email'])}"):
             if st.button("Logout"):
                 del st.session_state.user
                 st.rerun()

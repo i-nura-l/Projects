@@ -63,6 +63,8 @@ def admin_panel():
     combos = COMBINATIONS_TABLE.all()
     for combo in combos:
         fields = combo.get("fields", {})
+        if fields.get("User_Email") != st.session_state.user.get("email"):
+            continue
         combo_id = fields.get("Combination_ID", "Unknown")
         is_fav = fields.get("Favorite", False)
 

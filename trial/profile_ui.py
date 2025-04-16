@@ -23,9 +23,14 @@ def profile_dashboard():
     else:
         st.image("https://avatars.githubusercontent.com/u/9919?s=200&v=4", width=100)
 
+    st.write(f"**Name:** {user.get('username', 'Unknown')}")
     st.write(f"**Email:** {user['email']}")
     st.write(f"**Status:** {user.get('status', 'User')}")
-    st.write(f"**Joined:** {user.get('created', 'Unknown')[:10]}")
+    join_date = user.get('created')
+    if isinstance(join_date, str):
+        st.write(f"**Joined:** {join_date[:10]}")
+    else:
+        st.write("**Joined:** Unknown")
 
     clothes = get_user_clothes(user['email'])
     combos = get_user_combos(user['email'])
@@ -39,7 +44,8 @@ def profile_dashboard():
     if st.button("Update Status"):
         try:
             user_id = user['id']
-            WARDROBE_TABLE.update(user_id, {"Status": new_status})
+            from auth import USER_TABLE
+            USER_TABLE.update(user_id, {"Status": new_status})
             st.success("Status updated!")
             st.session_state.user["status"] = new_status
         except Exception as e:
