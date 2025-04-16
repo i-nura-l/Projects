@@ -53,7 +53,9 @@ require_login()
 init_session_state()
 
 
-wardrobe_df, combinations_df = load_data()
+wardrobe_df_full, combinations_df = load_data()
+user_email = st.session_state.user['email']
+wardrobe_df = wardrobe_df_full[wardrobe_df_full['User_Email'] == user_email].copy()
 
 st.sidebar.title("wea-rCloth")
 page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "Profile", "About", "Admin Panel"])
@@ -112,9 +114,12 @@ if page == "Main":
 
                     if not combinations_df.empty and 'Combination_ID' in combinations_df.columns:
                         existing_codes = [
-                            code for code in combinations_df['Combination_ID']
+                            code for code in combinations_df[
+                                combinations_df['User_Email'] == user_email
+                                ]['Combination_ID']
                             if isinstance(code, str) and code.startswith('C')
                         ]
+
                         if existing_codes:
                             max_num = max(int(code[1:]) for code in existing_codes)
                             new_num = max_num + 1

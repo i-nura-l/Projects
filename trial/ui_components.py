@@ -37,10 +37,12 @@ def clothing_form(type_options, style_options, season_options, form_category, wa
 
         uploaded_image = st.file_uploader("Upload Image (optional)", type=["png", "jpg", "jpeg"])
 
+        user_email = st.session_state.user['email']
         existing_items = wardrobe_df[
+            (wardrobe_df['User_Email'] == user_email) &
             (wardrobe_df['Category'] == form_category) &
             (wardrobe_df['Type'] == cloth_type)
-        ]
+            ]
         next_number = len(existing_items) + 1 if not existing_items.empty else 1
 
         style_code = ''.join([s[0] for s in selected_style]) if selected_style else ''
