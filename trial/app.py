@@ -165,7 +165,10 @@ elif page == "Combinations":
     rating_range = st.sidebar.slider("Rating Range", 0, 10, (0, 10))
 
     user_email = st.session_state.user['email']
-    combo_filtered_df = combinations_df[combinations_df['User_Email'] == user_email].copy()
+    if not combinations_df.empty and 'User_Email' in combinations_df.columns:
+        combo_filtered_df = combinations_df[combinations_df['User_Email'] == user_email].copy()
+    else:
+        combo_filtered_df = pd.DataFrame()
 
 
     def filter_list_field(cell, selected_options):
