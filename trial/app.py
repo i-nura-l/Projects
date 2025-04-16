@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from auth_ui import require_login, logout_button
 from profile_ui import profile_dashboard
+from wardrobe_editor import wardrobe_edit_interface
+
 
 
 
@@ -144,38 +146,11 @@ if page == "Main":
 # ----------------------------
 # WARDROBE PAGE
 # ----------------------------
-if page == "Wardrobe":
-    st.title("Your Wardrobe")
-    st.sidebar.subheader("Filter Options")
-    filter_category = st.sidebar.multiselect("Category", wardrobe_df['Category'].unique().tolist())
-    filter_style = st.sidebar.multiselect("Style", get_unique_values(wardrobe_df, 'Style'))
-    filter_season = st.sidebar.multiselect("Season", get_unique_values(wardrobe_df, 'Season'))
-
-    filtered_df = wardrobe_df.copy()
-    if filter_category:
-        filtered_df = filtered_df[filtered_df['Category'].isin(filter_category)]
-    if filter_style:
-        filtered_df = filtered_df[
-            filtered_df['Style'].apply(lambda x: any(s in str(x) for s in filter_style))
-        ]
-    if filter_season:
-        filtered_df = filtered_df[
-            filtered_df['Season'].apply(lambda x: any(s in str(x) for s in filter_season))
-        ]
-
-    if not filtered_df.empty:
-        for _, row in filtered_df.iterrows():
-            st.markdown(f"**{row['Model']}** — {row['Type']} ({row['Color']})")
-            if 'Image_URL' in row and row['Image_URL']:
-                if 'Image_URL' in row and row['Image_URL']:
-                    try:
-                        st.image(row['Image_URL'], width=150)
-                    except Exception as e:
-                        st.warning(f"Couldn't load image for {row['Model']}: {e}")
-
-        st.write(f"Showing {len(filtered_df)} of {len(wardrobe_df)} items")
+elif page == "Wardrobe":
+    if 'user' in st.session_state:
+        wardrobe_edit_interface(st.session_state.user['email'])
     else:
-        st.info("No items found. Try different filters or add new items.")
+        st.warning("Please log in to view your wardrobe.")
 
 # ----------------------------
 # COMBINATIONS PAGE
