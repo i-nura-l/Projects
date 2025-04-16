@@ -210,62 +210,82 @@ elif page == "Combinations":
             col1, col2, col3 = st.columns(3)
 
             with col1:
-                upper_item_id = st.selectbox("Choose Upper Body", wardrobe_df_user[wardrobe_df_user['Category'] == 'Upper body']['Model'], key="upper_select")
+                upper_item_id = st.selectbox("Choose Upper Body",
+                                             wardrobe_df_user[wardrobe_df_user['Category'] == 'Upper body']['Model'],
+                                             key="upper_select")
                 if upper_item_id:
                     upper_item = wardrobe_df_user[wardrobe_df_user['Model'] == upper_item_id].iloc[0]
-                    st.markdown(f"**Type:** {upper_item['Type']}  \n**Color:** {upper_item['Color']}  \n**Style:** {upper_item['Style']}  \n**Season:** {upper_item['Season']}")
+                    st.markdown(
+                        f"**Type:** {upper_item['Type']}  \n**Color:** {upper_item['Color']}  \n**Style:** {upper_item['Style']}  \n**Season:** {upper_item['Season']}")
                     image_path = upper_item.get("Image_URL", "")
                     if image_path and isinstance(image_path, str) and os.path.exists(image_path):
                         st.image(image_path, width=120)
 
             with col2:
-                lower_item_id = st.selectbox("Choose Lower Body", wardrobe_df_user[wardrobe_df_user['Category'] == 'Lower body']['Model'], key="lower_select")
+                lower_item_id = st.selectbox("Choose Lower Body",
+                                             wardrobe_df_user[wardrobe_df_user['Category'] == 'Lower body']['Model'],
+                                             key="lower_select")
                 if lower_item_id:
                     lower_item = wardrobe_df_user[wardrobe_df_user['Model'] == lower_item_id].iloc[0]
-                    st.markdown(f"**Type:** {lower_item['Type']}  \n**Color:** {lower_item['Color']}  \n**Style:** {lower_item['Style']}  \n**Season:** {lower_item['Season']}")
+                    st.markdown(
+                        f"**Type:** {lower_item['Type']}  \n**Color:** {lower_item['Color']}  \n**Style:** {lower_item['Style']}  \n**Season:** {lower_item['Season']}")
                     image_path = lower_item.get("Image_URL", "")
                     if image_path and isinstance(image_path, str) and os.path.exists(image_path):
                         st.image(image_path, width=120)
 
             with col3:
-                footwear_item_id = st.selectbox("Choose Footwear", wardrobe_df_user[wardrobe_df_user['Category'] == 'Footwear']['Model'], key="footwear_select")
+                footwear_item_id = st.selectbox("Choose Footwear",
+                                                wardrobe_df_user[wardrobe_df_user['Category'] == 'Footwear']['Model'],
+                                                key="footwear_select")
                 if footwear_item_id:
                     footwear_item = wardrobe_df_user[wardrobe_df_user['Model'] == footwear_item_id].iloc[0]
-                    st.markdown(f"**Type:** {footwear_item['Type']}  \n**Color:** {footwear_item['Color']}  \n**Style:** {footwear_item['Style']}  \n**Season:** {footwear_item['Season']}")
+                    st.markdown(
+                        f"**Type:** {footwear_item['Type']}  \n**Color:** {footwear_item['Color']}  \n**Style:** {footwear_item['Style']}  \n**Season:** {footwear_item['Season']}")
                     image_path = footwear_item.get("Image_URL", "")
                     if image_path and isinstance(image_path, str) and os.path.exists(image_path):
                         st.image(image_path, width=120)
 
-            season_match = st.multiselect("Season Match", SEASON_OPTIONS, default=["Universal"])
-            style_match = st.multiselect("Style Match", STYLE_OPTIONS, default=["Universal"])
+            season_match = st.multiselect("Season Match", SEASON_OPTIONS)
+            style_match = st.multiselect("Style Match", STYLE_OPTIONS)
+            rating = st.slider("Rate this combination", 0, 10, 5)
+            mark_favorite = st.checkbox("❤️ Mark this combination as favorite")
+
             create_btn = st.form_submit_button("Save Combination")
 
-        if create_btn and upper_item_id and lower_item_id and footwear_item_id:
-            if not combinations_df.empty and 'User_Email' in combinations_df.columns:
-                user_combos = combinations_df[combinations_df['User_Email'] == user_email]
-                existing_codes = [
-                    code for code in user_combos['Combination_ID']
-                    if isinstance(code, str) and code.startswith('C')
-                ]
-                new_num = max([int(code[1:]) for code in existing_codes], default=0) + 1
+        if create_btn:
+            if not (upper_item_id and lower_item_id and footwear_item_id):
+                st.warning("Please select an item for each category (Upper, Lower, Footwear).")
+            elif not season_match:
+                st.warning("Please select at least one season.")
+            elif not style_match:
+                st.warning("Please select at least one style.")
             else:
-                new_num = 1
+                # ✅ Only enter this block if everything is filled correctly
+                if not combinations_df.empty and 'User_Email' in combinations_df.columns:
+                    user_combos = combinations_df[combinations_df['User_Email'] == user_email]
+                    existing_codes = [
+                        code for code in user_combos['Combination_ID']
+                        if isinstance(code, str) and code.startswith('C')
+                    ]
+                    new_num = max([int(code[1:]) for code in existing_codes], default=0) + 1
+                else:
+                    new_num = 1
 
-            combination_id = f"C{new_num:03d}"
-            st.session_state.new_combination = {
-                'Combination_ID': combination_id,
-                'Upper_Body': upper_item_id,
-                'Lower_Body': lower_item_id,
-                'Footwear': footwear_item_id,
-                'Season_Match': season_match,
-                'Style_Match': style_match,
-                'User_Email': user_email,
-                'Rating': 5,
-                'Favorite': False
-            }
-            save_data(st.session_state)
-            st.success("Combination saved!")
-            st.rerun()
+                combination_id = f"C{new_num:03d}"
+                st.session_state.new_combination = {
+                    'Combination_ID': combination_id,
+                    'Upper_Body': upper_item_id,
+                    'Lower_Body': lower_item_id,
+                    'Footwear': footwear_item_id,
+                    'Season_Match': season_match,
+                    'Style_Match': style_match,
+                    'User_Email': user_email,
+                    'Rating': rating,
+                    'Favorite': mark_favorite
+                }
+                save_data(st.session_state)
+                st.success("Combination saved!")
+                st.rerun()
     else:
         wardrobe_df_user = wardrobe_df[wardrobe_df['User_Email'] == user_email]
 
@@ -309,38 +329,47 @@ elif page == "Combinations":
                     if image_path and isinstance(image_path, str) and os.path.exists(image_path):
                         st.image(image_path, width=120)
 
-            season_match = st.multiselect("Season Match", SEASON_OPTIONS, default=["Universal"])
-            style_match = st.multiselect("Style Match", STYLE_OPTIONS, default=["Universal"])
+            season_match = st.multiselect("Season Match", SEASON_OPTIONS)
+            style_match = st.multiselect("Style Match", STYLE_OPTIONS)
+            rating = st.slider("Rate this combination", 0, 10, 5)
             mark_favorite = st.checkbox("❤️ Mark this combination as favorite")
 
             create_btn = st.form_submit_button("Save Combination")
 
-        if create_btn and upper_item_id and lower_item_id and footwear_item_id:
-            if not combinations_df.empty and 'User_Email' in combinations_df.columns:
-                user_combos = combinations_df[combinations_df['User_Email'] == user_email]
-                existing_codes = [
-                    code for code in user_combos['Combination_ID']
-                    if isinstance(code, str) and code.startswith('C')
-                ]
-                new_num = max([int(code[1:]) for code in existing_codes], default=0) + 1
+        if create_btn:
+            if not (upper_item_id and lower_item_id and footwear_item_id):
+                st.warning("Please select an item for each category (Upper, Lower, Footwear).")
+            elif not season_match:
+                st.warning("Please select at least one season.")
+            elif not style_match:
+                st.warning("Please select at least one style.")
             else:
-                new_num = 1
+                # ✅ Only enter this block if everything is filled correctly
+                if not combinations_df.empty and 'User_Email' in combinations_df.columns:
+                    user_combos = combinations_df[combinations_df['User_Email'] == user_email]
+                    existing_codes = [
+                        code for code in user_combos['Combination_ID']
+                        if isinstance(code, str) and code.startswith('C')
+                    ]
+                    new_num = max([int(code[1:]) for code in existing_codes], default=0) + 1
+                else:
+                    new_num = 1
 
-            combination_id = f"C{new_num:03d}"
-            st.session_state.new_combination = {
-                'Combination_ID': combination_id,
-                'Upper_Body': upper_item_id,
-                'Lower_Body': lower_item_id,
-                'Footwear': footwear_item_id,
-                'Season_Match': season_match,
-                'Style_Match': style_match,
-                'User_Email': user_email,
-                'Rating': 5,
-                'Favorite': mark_favorite
-            }
-            save_data(st.session_state)
-            st.success("Combination saved!")
-            st.rerun()
+                combination_id = f"C{new_num:03d}"
+                st.session_state.new_combination = {
+                    'Combination_ID': combination_id,
+                    'Upper_Body': upper_item_id,
+                    'Lower_Body': lower_item_id,
+                    'Footwear': footwear_item_id,
+                    'Season_Match': season_match,
+                    'Style_Match': style_match,
+                    'User_Email': user_email,
+                    'Rating': rating,
+                    'Favorite': mark_favorite
+                }
+                save_data(st.session_state)
+                st.success("Combination saved!")
+                st.rerun()
 
         display_df = combo_filtered_df.drop(columns=["User_Email"]).reset_index(drop=True)
         display_df.index = [''] * len(display_df)
