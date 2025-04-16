@@ -311,6 +311,8 @@ elif page == "Combinations":
 
             season_match = st.multiselect("Season Match", SEASON_OPTIONS, default=["Universal"])
             style_match = st.multiselect("Style Match", STYLE_OPTIONS, default=["Universal"])
+            mark_favorite = st.checkbox("❤️ Mark this combination as favorite")
+
             create_btn = st.form_submit_button("Save Combination")
 
         if create_btn and upper_item_id and lower_item_id and footwear_item_id:
@@ -334,7 +336,7 @@ elif page == "Combinations":
                 'Style_Match': style_match,
                 'User_Email': user_email,
                 'Rating': 5,
-                'Favorite': False
+                'Favorite': mark_favorite
             }
             save_data(st.session_state)
             st.success("Combination saved!")
