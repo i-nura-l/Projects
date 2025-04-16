@@ -344,6 +344,29 @@ elif page == "Combinations":
         display_df.index = [''] * len(display_df)
         st.dataframe(display_df, use_container_width=True)
 
+        st.subheader("⭐ Mark Favorites")
+
+        for _, row in combo_filtered_df.iterrows():
+            combo_id = row['Combination_ID']
+            current_fav = row.get("Favorite", False)
+
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                st.write(f"{combo_id}: {row['Upper_Body']} / {row['Lower_Body']} / {row['Footwear']}")
+            with col2:
+                if st.button("⭐" if current_fav else "☆", key=f"fav_{combo_id}"):
+                    try:
+                        record = combinations_df[
+                            (combinations_df['User_Email'] == user_email) &
+                            (combinations_df['Combination_ID'] == combo_id)
+                            ]
+                        if not record.empty:
+                            record_id = record.index[0]  # only works if index == Airtable ID
+                            COMBINATIONS_TABLE.update(record_id, {"Favorite": not current_fav})
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to update favorite: {e}")
+
         st.subheader("📊 Combination Ratings Analysis")
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.histplot(combo_filtered_df['Rating'], bins=11, kde=True, ax=ax)
