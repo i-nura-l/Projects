@@ -261,7 +261,9 @@ elif page == "Combinations":
             st.success("Combination saved!")
             st.rerun()
 
-        st.dataframe(combo_filtered_df.reset_index(drop=True))
+        from streamlit import dataframe as st_dataframe
+
+        st_dataframe(combo_filtered_df.drop(columns=["User_Email"]), use_container_width=True, hide_index=True)
         st.write(f"Showing {len(combo_filtered_df)} of {len(combo_filtered_df)} combination records.")
 
         st.subheader("📊 Combination Ratings Analysis")
