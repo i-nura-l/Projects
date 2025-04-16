@@ -48,101 +48,9 @@ combinations_table = Table(
     'combinations_data'
 )
 
-def load_data():
-    """Fetch data from Airtable instead of local CSVs."""
-    wardrobe_records = wardrobe_table.all()
-    combinations_records = combinations_table.all()
 
-    loaded_wardrobe_df = pd.DataFrame(
-        [rec['fields'] for rec in wardrobe_records if 'fields' in rec and rec['fields']]
-    ) if wardrobe_records else pd.DataFrame()
 
-    loaded_combinations_df = pd.DataFrame(
-        [{'id': rec['id'], **rec['fields']} for rec in combinations_records if 'fields' in rec and rec['fields']]
-    ) if combinations_records else pd.DataFrame()
 
-    if not loaded_wardrobe_df.empty:
-        loaded_wardrobe_df = loaded_wardrobe_df.reset_index(drop=True)
-        loaded_wardrobe_df.index = loaded_wardrobe_df.index + 1
-
-    if not loaded_combinations_df.empty:
-        loaded_combinations_df = loaded_combinations_df.reset_index(drop=True)
-        loaded_combinations_df.index = loaded_combinations_df.index + 1
-        # Remove the 'id' column so it is not displayed in the app
-        if 'id' in loaded_combinations_df.columns:
-            loaded_combinations_df = loaded_combinations_df.drop(columns=['id'])
-
-    expected_columns = ['Model', 'Category', 'Type', 'Style', 'Color', 'Season']
-    for col in expected_columns:
-        if col not in loaded_wardrobe_df.columns:
-            loaded_wardrobe_df[col] = None
-
-    multi_select_columns = ['Style', 'Season']
-    for col in multi_select_columns:
-        if col in loaded_wardrobe_df.columns:
-            loaded_wardrobe_df[col] = loaded_wardrobe_df[col].apply(
-                lambda x: ', '.join(x) if isinstance(x, list) else x
-            )
-
-    return loaded_wardrobe_df, loaded_combinations_df
-
-def get_unique_values(df, column):
-    """Get unique values from a column that may contain comma-separated values."""
-    if df is None or df.empty or column not in df.columns:
-        return []
-
-    all_values = set()
-    for value in df[column].dropna():
-        if isinstance(value, list):
-            for item in value:
-                all_values.add(item)
-        elif isinstance(value, str):
-            if ',' in value:
-                for item in value.split(','):
-                    all_values.add(item.strip())
-            else:
-                all_values.add(value)
-    return sorted(list(all_values))
-
-def save_data():
-    """
-    Save new items/combos from session state to Airtable.
-    """
-    # Save new clothing item if available
-    if 'new_item' in st.session_state:
-        new_item_data = st.session_state.new_item
-        row_dict = {}
-        for key, value in new_item_data.items():
-            if isinstance(value, list) and value:
-                row_dict[key] = value
-            elif pd.notna(value):
-                row_dict[key] = value
-        try:
-            wardrobe_table.create(row_dict)
-            st.success(f"Added {row_dict.get('Model', 'item')} to your wardrobe!")
-            del st.session_state.new_item
-        except Exception as e:
-            st.error(f"Error saving to Airtable: {str(e)}")
-            st.error("Check if all field names match your Airtable schema")
-
-    # Save new outfit combination if available
-    if 'new_combination' in st.session_state:
-        new_combination_data = st.session_state.new_combination
-        row_dict = {}
-        for key, value in new_combination_data.items():
-            if isinstance(value, list) and value:
-                row_dict[key] = value
-            elif pd.notna(value):
-                row_dict[key] = value
-
-        try:
-            combinations_table.create(row_dict)
-            st.success("Saved rating for this combination!")
-            del st.session_state.new_combination
-            st.session_state.show_rating = False  # Reset rating UI state
-        except Exception as e:
-            st.error(f"Error saving combination to Airtable: {str(e)}")
-            st.error(f"Data being sent: {row_dict}")
 
 def update_type_options():
     """Update the type options based on the selected category."""
@@ -241,23 +149,7 @@ if page == "Main":
         if generate_button:
             try:
                 # Helper functions
-                def matches_season(item_season_str, season_choice):
-                    if season_choice == "Universal":
-                        return True
-                    if not isinstance(item_season_str, str):
-                        return False
-                    item_season_list = [s.strip() for s in item_season_str.split(',')]
-                    # True if the item is "Universal" or contains the chosen season
-                    return ("Universal" in item_season_list) or (season_choice in item_season_list)
 
-                def matches_style(item_style_str, style_choice):
-                    if style_choice == "Universal":
-                        return True
-                    if not isinstance(item_style_str, str):
-                        return False
-                    item_style_list = [s.strip() for s in item_style_str.split(',')]
-                    # True if the item is "Universal" or contains the chosen style
-                    return ("Universal" in item_style_list) or (style_choice in item_style_list)
 
                 # 2) Filter entire wardrobe by chosen season & style
                 valid_items = wardrobe_df[
@@ -435,46 +327,6 @@ elif page == "Combinations":
         st.subheader("Top Rated Combinations")
         top_combinations = combinations_df.sort_values('Rating', ascending=False).head(5)
         st.dataframe(top_combinations)
-
-    # st.subheader("Delete Duplicate Combinations")
-    # if not combinations_df.empty:
-    #     def get_combination_signature(row):
-    #         upper = row.get("Upper_Body", "")
-    #         lower = row.get("Lower_Body", "")
-    #         season_vals = row.get("Season_Match", [])
-    #         style_vals = row.get("Style_Match", [])
-    #
-    #         if isinstance(season_vals, str):
-    #             season_vals = [s.strip() for s in season_vals.split(',')]
-    #         if isinstance(style_vals, str):
-    #             style_vals = [s.strip() for s in style_vals.split(',')]
-    #
-    #         season_sig = "|".join(sorted(season_vals))
-    #         style_sig = "|".join(sorted(style_vals))
-    #         return f"{upper}-{lower}-{season_sig}-{style_sig}"
-    #
-    #     combinations_df["signature"] = combinations_df.apply(get_combination_signature, axis=1)
-    #     duplicate_groups = combinations_df.groupby("signature").filter(lambda x: len(x) > 1)
-    #
-    #     if duplicate_groups.empty:
-    #         st.write("No duplicate combinations found.")
-    #     else:
-    #         st.write("The following duplicate groups were found:")
-    #         for sig, group in combinations_df.groupby("signature"):
-    #             if len(group) > 1:
-    #                 st.write(f"**Signature:** {sig}")
-    #                 st.dataframe(group)
-    #                 if st.button(f"Delete duplicates for signature {sig}"):
-    #                     duplicates = group.sort_values("id").iloc[1:]
-    #                     for rid in duplicates["id"]:
-    #                         try:
-    #                             combinations_table.delete(rid)
-    #                             st.write(f"Deleted record ID: {rid}")
-    #                         except Exception as e:
-    #                             st.error(f"Error deleting record {rid}: {e}")
-    #                     st.success("Duplicates deleted for this group. Please refresh the page.")
-    # else:
-    #     st.write("No combination records available.")
 
 # ---------------------------------------------------------------------------
 # PAGE: ANALYSIS

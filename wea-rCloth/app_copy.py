@@ -4,13 +4,68 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from supabase import create_client, Client
 
+# Auth functions
+def sign_up(email, password):
+    try:
+        user = supabase.auth.sign_up({"email": email, "password": password})
+        return user
+    except Exception as e:
+        st.error(f"Registration failed {e}")
+
+def sign_in(email, password):
+    try:
+        user = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        return user
+    except Exception as e:
+        st.error(f"Login failed: {e}")
+
+def sign_out():
+    try:
+        supabase.auth.sign_out()
+        st.session_state.user_email = None
+        st.rerun()
+    except Exception as e:
+        st.error(f"Logout failed: {e}")
+
+def auth_screen():
+    st.title('wea-rCloth Login')
+    option = st.selectbox('Choose an action:', ['Login', 'Sign Up'])
+    email = st.text_input('Email')
+    password = st.text_input('Password', type='password')
+
+    if option == 'Sign Up' and st.button("Register"):
+        user = sign_up(email, password)
+        if user and user.user:
+            st.success('Registration successful. Please log in.')
+
+    if option == "Login" and st.button('Login'):
+        user = sign_in(email, password)
+        if user and user.user:
+            st.session_state.user_email = user.user.email
+            st.success(f'Welcome back, {email}')
+            st.rerun()
+
 # Supabase configuration
 SUPABASE_URL = "https://tnrzphomntjzwwgvsvvk.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRucnpwaG9tbnRqend3Z3ZzdnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NTcxNTAsImV4cCI6MjA1OTIzMzE1MH0.GEMCVRhxmw_MHAD4rmaEHoCTOGKhVuYGJo5IyGFte8k"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhbWV0bXNubHRuenZtenJvcndrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2OTkyNjYsImV4cCI6MjA1OTI3NTI2Nn0.hTLDdr7oJu_lzrg_ATmu0nfgJ6WMtDcHzVSKV2Y24Zc"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Set page config
 st.set_page_config(page_title="wea-rCloth", layout="wide")
+
+# Initialize user session state
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+
+# Show login screen if not logged in
+if not st.session_state.user_email:
+    auth_screen()
+    st.stop()
+
+# Add Logout Button
+st.sidebar.markdown(f"**Logged in as:** {st.session_state.user_email}")
+if st.sidebar.button("Logout"):
+    sign_out()
 
 # Initialize session state
 if 'current_combination' not in st.session_state:
