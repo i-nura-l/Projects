@@ -7,7 +7,7 @@ import seaborn as sns
 from auth_ui import require_login, logout_button
 from profile_ui import profile_dashboard
 from wardrobe_editor import wardrobe_edit_interface
-
+from admin_panel import admin_panel
 
 
 
@@ -56,7 +56,7 @@ init_session_state()
 wardrobe_df, combinations_df = load_data()
 
 st.sidebar.title("wea-rCloth")
-page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "Profile", "About"])
+page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "Profile", "About", "Admin Panel"])
 
 # MAIN PAGE
 if page == "Main":
@@ -292,6 +292,9 @@ elif page == "About":
     - Community sharing
     - Color palette matching
     """)
+
+elif page == "Admin Panel":
+    admin_panel()
 
 
 
