@@ -4,6 +4,8 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from auth_ui import require_login, logout_button
+
 
 from constants import CUSTOM_TYPES, STYLE_OPTIONS, SEASON_OPTIONS, CATEGORY_OPTIONS
 from airtable_utils import load_data, save_data
@@ -40,6 +42,10 @@ def apply_theme(theme):
 
 
 st.set_page_config(page_title="wea-rCloth", layout="wide")
+
+logout_button()
+require_login()
+
 init_session_state()
 
 
