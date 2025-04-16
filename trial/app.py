@@ -37,6 +37,23 @@ def apply_theme(theme):
         </style>
     """
     st.markdown(dark_mode_css if theme == "Dark" else light_mode_css, unsafe_allow_html=True)
+def apply_custom_theme(bg_color, text_color, accent_color):
+    st.markdown(f"""
+        <style>
+        html, body, [class*="css"] {{
+            background-color: {bg_color} !important;
+            color: {text_color} !important;
+        }}
+        .stButton>button {{
+            background-color: {accent_color} !important;
+            color: white !important;
+        }}
+        .stSelectbox div, .stTextInput input {{
+            background-color: {bg_color} !important;
+            color: {text_color} !important;
+        }}
+        </style>
+    """, unsafe_allow_html=True)
 
 
 st.set_page_config(page_title="wea-rCloth", layout="wide")
@@ -309,3 +326,9 @@ elif page == "About":
 
 theme = st.sidebar.radio("Theme", ["Light", "Dark"], index=1)
 apply_theme(theme)
+st.sidebar.subheader("🎨 Theme Customization")
+
+bg_color = st.sidebar.color_picker("Background Color", "#0e1117")
+text_color = st.sidebar.color_picker("Text Color", "#ffffff")
+accent_color = st.sidebar.color_picker("Accent Color", "#007bff")
+apply_custom_theme(bg_color, text_color, accent_color)
