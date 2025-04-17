@@ -85,9 +85,9 @@ wea-rCloth supports real-time use by allowing users to instantly manage clothing
 
 ## 🔗 Project Links
 
-- **GitHub Repository:** [your-link-here]  
-- **Live Demo (optional):** [streamlit-app-link-if-deployed]  
-- **Demo Video/Screenshots:** [google-drive-or-youtube-link]
+- **GitHub Repository:** https://github.com/i-nura-l/Projects/tree/main/wea-rCloth
+- **Live Demo (optional):** https://wea-rcloth-app.streamlit.app/ 
+- **Demo Video/Screenshots:** 
 
 ---
 
