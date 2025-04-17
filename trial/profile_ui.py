@@ -3,6 +3,7 @@
 import streamlit as st
 import pandas as pd
 from airtable_utils import WARDROBE_TABLE, COMBINATIONS_TABLE
+import os
 
 
 def get_user_clothes(email):
@@ -18,10 +19,30 @@ def profile_dashboard():
     st.title("👤 My Profile")
 
     avatar_url = user.get("avatar")
-    if avatar_url:
+    if avatar_url and os.path.exists(avatar_url):
         st.image(avatar_url, width=100)
     else:
         st.image("https://avatars.githubusercontent.com/u/9919?s=200&v=4", width=100)
+
+    st.markdown("### 🖼️ Update Avatar")
+    new_avatar = st.file_uploader("Upload New Avatar", type=["jpg", "jpeg", "png"])
+    if new_avatar:
+        os.makedirs("avatars", exist_ok=True)
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"{user['username']}_{timestamp}.jpg"
+        avatar_path = os.path.join("avatars", filename)
+        with open(avatar_path, "wb") as f:
+            f.write(new_avatar.getbuffer())
+
+        try:
+            from auth import USER_TABLE
+            USER_TABLE.update(user['id'], {"Avatar_URL": avatar_path})
+            st.session_state.user["avatar"] = avatar_path
+            st.success("Avatar updated!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Failed to update avatar: {e}")
 
     st.write(f"**Name:** {user.get('username', 'Unknown')}")
     st.write(f"**Email:** {user['email']}")
