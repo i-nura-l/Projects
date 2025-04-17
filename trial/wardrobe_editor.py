@@ -10,7 +10,10 @@ def wardrobe_edit_interface(email):
 
     # Load all wardrobe records
     all_items = WARDROBE_TABLE.all()
-    user_items = [r for r in all_items if r['fields'].get('User_Email') == email]
+    if st.session_state.user.get("status") == "1":
+        user_items = all_items  # Admin sees all
+    else:
+        user_items = [r for r in all_items if r['fields'].get('User_Email') == email]
 
     if not user_items:
         st.info("No clothing items found.")

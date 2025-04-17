@@ -56,7 +56,11 @@ init_session_state()
 
 wardrobe_df_full, combinations_df = load_data()
 user_email = st.session_state.user['email']
-wardrobe_df = wardrobe_df_full[wardrobe_df_full['User_Email'] == user_email].copy()
+
+if st.session_state.user.get("status") == "1":
+    wardrobe_df = wardrobe_df_full.copy()  # Admin sees all
+else:
+    wardrobe_df = wardrobe_df_full[wardrobe_df_full['User_Email'] == user_email].copy()
 
 st.sidebar.title("wea-rCloth")
 nav_options = ["Main", "Wardrobe", "Combinations", "Analysis", "Profile", "About"]
@@ -170,7 +174,10 @@ elif page == "Combinations":
 
     user_email = st.session_state.user['email']
     if not combinations_df.empty and 'User_Email' in combinations_df.columns:
-        combo_filtered_df = combinations_df[combinations_df['User_Email'] == user_email].copy()
+        if st.session_state.user.get("status") == "1":
+            combo_filtered_df = combinations_df.copy()
+        else:
+            combo_filtered_df = combinations_df[combinations_df['User_Email'] == user_email].copy()
     else:
         combo_filtered_df = pd.DataFrame()
 

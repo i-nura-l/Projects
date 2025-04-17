@@ -31,15 +31,30 @@ def admin_panel():
 
     st.subheader("📋 Registered Users")
     users = USER_TABLE.all()
+    from airtable_utils import WARDROBE_TABLE, COMBINATIONS_TABLE
+
+    wardrobe = WARDROBE_TABLE.all()
+    combos = COMBINATIONS_TABLE.all()
+
+    st.metric("👕 Total Clothing Items", len(wardrobe))
+    st.metric("👗 Total Outfit Combinations", len(combos))
 
     emails = [u['fields'].get('Email') for u in users]
     selected_email = st.selectbox("Select a user to manage", emails)
     selected_user = next((u for u in users if u['fields'].get('Email') == selected_email), None)
 
     if selected_user:
+
         st.write("**Email:**", selected_user['fields'].get('Email'))
         st.write("**Status:**", selected_user['fields'].get('Status'))
         st.write("**Airtable ID:**", selected_user['id'])
+
+        user_email = selected_user['fields'].get('Email')
+        user_wardrobe_count = sum(1 for item in wardrobe if item['fields'].get('User_Email') == user_email)
+        user_combo_count = sum(1 for c in combos if c['fields'].get('User_Email') == user_email)
+
+        st.write(f"**Clothes by this user:** {user_wardrobe_count}")
+        st.write(f"**Combinations by this user:** {user_combo_count}")
 
         if st.button("❌ Delete this user and all data"):
             try:
@@ -59,22 +74,3 @@ def admin_panel():
             except Exception as e:
                 st.error(f"Failed to delete user: {e}")
 
-    st.subheader("⭐ Toggle Favorites in Combos")
-    combos = COMBINATIONS_TABLE.all()
-    for combo in combos:
-        fields = combo.get("fields", {})
-        if fields.get("User_Email") != st.session_state.user.get("email"):
-            continue
-        combo_id = fields.get("Combination_ID", "Unknown")
-        is_fav = fields.get("Favorite", False)
-
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            st.write(f"{combo_id}: {fields.get('Upper_Body')} / {fields.get('Lower_Body')} / {fields.get('Footwear')}")
-        with col2:
-            if st.button("⭐" if is_fav else "☆", key=combo["id"]):
-                try:
-                    COMBINATIONS_TABLE.update(combo["id"], {"Favorite": not is_fav})
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to update favorite: {e}")
