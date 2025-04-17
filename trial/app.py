@@ -59,7 +59,11 @@ user_email = st.session_state.user['email']
 wardrobe_df = wardrobe_df_full[wardrobe_df_full['User_Email'] == user_email].copy()
 
 st.sidebar.title("wea-rCloth")
-page = st.sidebar.selectbox("Navigation", ["Main", "Wardrobe", "Combinations", "Analysis", "Profile", "About", "Admin Panel"])
+nav_options = ["Main", "Wardrobe", "Combinations", "Analysis", "Profile", "About"]
+if st.session_state.user.get("status") == "1":
+    nav_options.append("Admin Panel")
+
+page = st.sidebar.selectbox("Navigation", nav_options)
 
 # MAIN PAGE
 if page == "Main":

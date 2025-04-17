@@ -1,4 +1,5 @@
 # auth.py – handles login, signup, and password hashing
+from dataclasses import fields
 
 import streamlit as st
 import bcrypt
@@ -40,7 +41,8 @@ def signup_user(email, password, username):
         USER_TABLE.create({
             'Email': email,
             'Password_Hash': password_hash,
-            'Status': 'New User',
+            'Status': 0,
+            'Bio': 'New User',
             'Username': username,
             'Created_At': datetime.utcnow().isoformat()
         })
@@ -64,8 +66,8 @@ def login_user(email, password):
     user_data = {
         'id': rec['id'],
         'email': rec['fields'].get('Email'),
-        'status': rec['fields'].get('Status', 'User'),
-        'avatar': rec['fields'].get('Avatar_URL', ''),
+        'status': str(rec['fields'].get('Status', '0')), 'avatar': rec['fields'].get('Avatar_URL', ''),
+        'bio': rec['fields'].get('Bio'),
         'created': rec['fields'].get('Created_At'),
         'username': rec['fields'].get('Username', '')
     }

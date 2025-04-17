@@ -25,9 +25,9 @@ COMBINATIONS_TABLE = Table(
 def admin_panel():
     st.title("🔧 Admin Panel")
 
-    if st.session_state.user.get("email") != "admin@example.com":
+    if st.session_state.user.get("status") != "1":
         st.error("Access denied. Admins only.")
-        return
+        st.stop()
 
     st.subheader("📋 Registered Users")
     users = USER_TABLE.all()
