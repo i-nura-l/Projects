@@ -36,12 +36,15 @@ def signup_user(email, password, username):
 
     password_hash = hash_password(password)
     try:
+
         USER_TABLE.create({
             'Email': email,
             'Password_Hash': password_hash,
             'Status': 'New User',
-            'Username': username
+            'Username': username,
+            'Created_At': datetime.utcnow().isoformat()
         })
+
         return True, "Account created successfully."
     except Exception as e:
         return False, f"Signup failed: {str(e)}"
