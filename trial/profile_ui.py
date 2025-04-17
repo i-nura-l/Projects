@@ -46,7 +46,7 @@ def profile_dashboard():
 
     st.write(f"**Name:** {user.get('username', 'Unknown')}")
     st.write(f"**Email:** {user['email']}")
-    st.write(f"**Status:** {user.get('status', 'User')}")
+    st.write(f"**Bio:** {user.get('bio', 'User')}")
     join_date = user.get('created')
     if isinstance(join_date, str):
         st.write(f"**Joined:** {join_date[:10]}")
@@ -60,17 +60,17 @@ def profile_dashboard():
     st.metric("👕 Outfit Combos", len(combos))
 
     st.markdown("---")
-    st.subheader("✏️ Update Status")
-    new_status = st.text_input("Your Status", user.get("status", ""))
-    if st.button("Update Status"):
+    st.subheader("✏️ Update Bio")
+    new_bio = st.text_input("Your Bio", user.get("bio", ""))
+    if st.button("Update Bio"):
         try:
             user_id = user['id']
             from auth import USER_TABLE
-            USER_TABLE.update(user_id, {"Status": new_status})
-            st.success("Status updated!")
-            st.session_state.user["status"] = new_status
+            USER_TABLE.update(user_id, {"Bio": new_bio})
+            st.success("Bio updated!")
+            st.session_state.user["bio"] = new_bio
         except Exception as e:
-            st.error(f"Failed to update status: {e}")
+            st.error(f"Failed to update bio: {e}")
 
     st.markdown("---")
     st.subheader("❤️ Favorite Combinations")
