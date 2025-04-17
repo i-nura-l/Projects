@@ -73,4 +73,3 @@ def admin_panel():
                 st.rerun()
             except Exception as e:
                 st.error(f"Failed to delete user: {e}")
-
