@@ -465,26 +465,38 @@ elif page == "About":
     st.markdown("""
     ## Your Smart Wardrobe Assistant
 
-    **wea-rCloth** helps you:
-    - Organize your wardrobe digitally
-    - Generate outfit combinations based on your actual clothing items
-    - Rate and track your favorite combinations
-    - Analyze your wardrobe composition and preferences
+    **wea-rCloth** is a digital wardrobe manager and outfit generator that helps you organize, explore, and enjoy your fashion.
 
-    ### How to Use
-    1. Add your clothing items on the Main page
-    2. Generate and rate outfit combinations
-    3. View your entire wardrobe on the Wardrobe page
-    4. See analytics and insights on the Analysis page
+    ---
 
-    ### Future Features (Coming Soon)
-    - Machine learning recommendations based on your ratings
-    - Image upload for clothing items
-    - Seasonal wardrobe planning
-    - Outfit calendar
-    - Community sharing
-    - Color palette matching
+    ### ✨ What You Can Do
+    - Add your clothing items with details and images
+    - Automatically or manually create outfit combinations
+    - Rate and favorite your best outfits
+    - Visualize your wardrobe stats with beautiful charts
+    - Edit your profile info and avatar
+
+    ---
+
+    ### 🔐 Admin Capabilities
+    - View all users and their wardrobe/combo data
+    - See per-user and total stats
+    - Manage or delete user records and data
+    - Analyze global wardrobe trends
+
+    ---
+
+    ### 🛠️ Coming Soon
+    - Color-based outfit matching
+    - Machine learning recommendations
+    - Outfit calendar planning
+    - Community and style sharing
+
+    ---
+
+    Made with ❤️ using Python, Streamlit, and Airtable.
     """)
+
 
 elif page == "Admin Panel":
     admin_panel()
