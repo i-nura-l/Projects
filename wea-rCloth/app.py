@@ -496,7 +496,7 @@ elif page == "About":
     
     ### 🔢 Contacts
     - Telegram: @Bnurali
-    - WhatsApp: 0558640927
+    - WhatsApp: +996 558 640 927
     - Email: nurali.bakytbekuulu@alatoo.edu.kg
     
     ---
