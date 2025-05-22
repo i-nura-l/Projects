@@ -493,6 +493,13 @@ elif page == "About":
     - Community and style sharing
 
     ---
+    
+    ### 🔢 Contacts
+    Telegram: @Bnurali
+    WhatsApp: 0558640927
+    Email: nurali.bakytbekuulu@alatoo.edu.kg
+    
+    ---
 
     Made with ❤️ using Python, Streamlit, and Airtable.
     """)
