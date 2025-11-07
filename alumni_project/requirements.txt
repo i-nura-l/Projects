@@ -1,16 +1,6 @@
 streamlit
-
-psycopg2-binary
-bcrypt
-
 pandas
 matplotlib
-seaborn
-
 plotly
 openpyxl
-
-pyairtable
-airtable-python-wrapper
-
-supabase
+xlrd
