@@ -345,23 +345,27 @@ elif page == t("analysis"):
             selected_year = st.selectbox(t("year_filter"), years)
 
         with col2:
-            faculties = [t("all")] + sorted(df['SPEC_RU'].dropna().unique().tolist()) if 'SPEC_RU' in df.columns else [
-                t("all")]
+            if 'SPEC_RU' in df.columns:
+                faculties = [t("all")] + sorted([str(x) for x in df['SPEC_RU'].dropna().unique()])
+            else:
+                faculties = [t("all")]
             selected_faculty = st.selectbox(t("faculty_filter"), faculties)
 
         with col3:
-            edu_levels = [t("all")] + sorted(
-                df['EDU_LEVEL'].dropna().unique().tolist()) if 'EDU_LEVEL' in df.columns else [t("all")]
+            if 'EDU_LEVEL' in df.columns:
+                edu_levels = [t("all")] + sorted([str(x) for x in df['EDU_LEVEL'].dropna().unique()])
+            else:
+                edu_levels = [t("all")]
             selected_level = st.selectbox(t("edu_level_filter"), edu_levels)
 
         # Apply filters
         filtered_df = df.copy()
         if selected_year != t("all"):
             filtered_df = filtered_df[filtered_df['YEAR'] == selected_year]
-        if selected_faculty != t("all"):
-            filtered_df = filtered_df[filtered_df['SPEC_RU'] == selected_faculty]
-        if selected_level != t("all"):
-            filtered_df = filtered_df[filtered_df['EDU_LEVEL'] == selected_level]
+        if selected_faculty != t("all") and 'SPEC_RU' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['SPEC_RU'].astype(str) == selected_faculty]
+        if selected_level != t("all") and 'EDU_LEVEL' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['EDU_LEVEL'].astype(str) == selected_level]
 
         # Search
         search_term = st.text_input(t("search_placeholder"))
