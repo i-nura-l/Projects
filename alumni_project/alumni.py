@@ -160,9 +160,12 @@ def clean_phone_number(phone):
 
 
 def extract_year_from_filename(filename):
-    """Extract year from filename"""
-    match = re.search(r'20\d{2}', filename)
-    return int(match.group()) if match else datetime.now().year
+    """Extract all years from filename (e.g., 2023_2024)"""
+    matches = re.findall(r'20\d{2}', filename)
+    if matches:
+        # Return the first year found
+        return int(matches[0])
+    return datetime.now().year
 
 
 def process_uploaded_files(uploaded_files):
@@ -171,12 +174,21 @@ def process_uploaded_files(uploaded_files):
 
     for file in uploaded_files:
         try:
-            # Read Excel file
-            df = pd.read_excel(file)
+            # Read Excel file (handles both .xls and .xlsx)
+            df = pd.read_excel(file, engine=None)
 
-            # Extract year from filename
-            year = extract_year_from_filename(file.name)
-            df['YEAR'] = year
+            # Priority 1: Check if YEAR column exists in the data
+            if 'YEAR' not in df.columns:
+                # Priority 2: Extract year from filename
+                year = extract_year_from_filename(file.name)
+                df['YEAR'] = year
+            else:
+                # YEAR column exists, but fill missing values from filename
+                filename_year = extract_year_from_filename(file.name)
+                df['YEAR'] = df['YEAR'].fillna(filename_year)
+
+            # Convert YEAR to integer
+            df['YEAR'] = df['YEAR'].astype(int)
 
             all_data.append(df)
         except Exception as e:
@@ -295,6 +307,30 @@ if page == t("upload_clean"):
 # PAGE 2: Analysis Dashboard
 elif page == t("analysis"):
     st.header(t("analysis"))
+
+    # Option to add more files
+    with st.expander("➕ Add More Files to Existing Data"):
+        additional_files = st.file_uploader(
+            "Upload additional Excel files",
+            type=['xls', 'xlsx'],
+            accept_multiple_files=True,
+            key="additional_files"
+        )
+
+        if additional_files and st.button("Add to Dataset"):
+            with st.spinner(t("processing")):
+                new_df = process_uploaded_files(additional_files)
+                if new_df is not None:
+                    if st.session_state.cleaned_data is not None:
+                        # Combine with existing data
+                        st.session_state.cleaned_data = pd.concat(
+                            [st.session_state.cleaned_data, new_df],
+                            ignore_index=True
+                        )
+                        st.success(f"✅ Added {len(new_df)} records to dataset!")
+                    else:
+                        st.session_state.cleaned_data = new_df
+                        st.success(f"✅ Loaded {len(new_df)} records!")
 
     if st.session_state.cleaned_data is None:
         st.warning(t("no_data"))
