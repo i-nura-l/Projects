@@ -1,421 +1,487 @@
-# app.py
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime
 import re
 from io import BytesIO
-from datetime import datetime
-import plotly.express as px
+import base64
 
-st.set_page_config(page_title="Student Data Manager", layout="wide", initial_sidebar_state="expanded")
-
-# ---------- Styles (modern calm) ----------
-st.markdown(
-    """
-    <style>
-    /* Calm modern card */
-    .stApp {
-        background: linear-gradient(180deg, #F7FAFC 0%, #FFFFFF 100%);
-    }
-    .title {
-        font-size:28px;
-        font-weight:700;
-    }
-    .subtitle {
-        color: #6B7280;
-        font-size:14px;
-    }
-    .kpi {
-        background: #FFFFFF;
-        border-radius: 12px;
-        padding: 14px;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
+# Page config
+st.set_page_config(
+    page_title="Student Data Manager",
+    page_icon="🎓",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# ---------- Language dictionary ----------
-LANG = {
+# Custom CSS for calm, modern design
+st.markdown("""
+<style>
+    .main {
+        background-color: #f8f9fa;
+    }
+    .stApp {
+        max-width: 100%;
+    }
+    h1, h2, h3 {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    .metric-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 10px 0;
+    }
+    .stButton>button {
+        background-color: #5dade2;
+        color: white;
+        border-radius: 8px;
+        border: none;
+        padding: 10px 24px;
+        font-weight: 500;
+    }
+    .stButton>button:hover {
+        background-color: #3498db;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 28px;
+        color: #2c3e50;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Translation dictionary
+TRANSLATIONS = {
     "en": {
-        "app_title": "Student Data Manager",
-        "upload_instructions": "Upload multiple .xls/.xlsx files (different years). Columns expected: EDU_LEVEL, CIPHER, SPEC_RU, RU, STUD_ID, NAME_NATIVE, SURNAME_NATIVE, PATRONYMIC, BIRTH_DATE, CONTACT_PHONES, EMAIL",
-        "upload_button": "Upload files",
-        "process": "Process files",
-        "download_cleaned": "Download cleaned Excel",
-        "with_contacts": "Students with contacts",
-        "without_contacts": "Students without contacts",
-        "total_students": "Total students",
-        "students_with": "With contact",
-        "students_without": "Without contact",
-        "analysis": "Analysis Dashboard",
-        "filters": "Filters",
-        "year": "Year",
-        "faculty": "Faculty (SPEC_RU)",
-        "edu_level": "Education Level",
-        "chart_students_year": "Students by Year",
-        "chart_by_faculty": "Students by Faculty",
-        "chart_trend": "Graduation Trend (by Year)",
-        "contact_completeness": "Contact completeness",
-        "search_name": "Search name",
-        "download_filtered": "Download filtered data",
-        "update_merge": "Update / Merge Data",
-        "upload_master": "(Optional) Upload master file to update (or use 'Processed master' above)",
-        "upload_updates": "Upload updates file",
-        "merge_button": "Merge & Update",
-        "merge_summary": "Merge summary",
-        "updated": "Records updated",
-        "added": "New records added",
-        "download_merged": "Download merged file",
-        "no_data": "No data loaded yet. Upload files first.",
-        "invalid_phone_example": "Phone converted; unrecognized left blank.",
-        "processing_complete": "Processing complete.",
+        "title": "🎓 Student Data Manager",
+        "subtitle": "Clean, Analyze & Manage Student Records",
+        "language": "Language",
+        "upload_clean": "📤 Upload & Clean Data",
+        "analysis": "📊 Analysis Dashboard",
+        "merge": "🔄 Update & Merge Data",
+        "upload_files": "Upload Excel Files (.xls, .xlsx)",
+        "drag_drop": "Drag and drop files here or click to browse",
+        "processing": "Processing data...",
+        "success": "✅ Processing complete!",
+        "total_students": "Total Students",
+        "with_contacts": "With Contacts",
+        "without_contacts": "Without Contacts",
+        "download_cleaned": "📥 Download Cleaned Data",
+        "year_filter": "Filter by Year",
+        "faculty_filter": "Filter by Faculty",
+        "edu_level_filter": "Filter by Education Level",
+        "all": "All",
+        "search_placeholder": "Search by name...",
+        "students_by_year": "Students by Year",
+        "students_by_faculty": "Students by Faculty",
+        "graduation_trend": "Graduation Trend Over Years",
+        "contact_completeness": "Contact Information Completeness",
+        "upload_old": "Upload Old Dataset",
+        "upload_new": "Upload New Dataset",
+        "merge_data": "🔄 Merge Data",
+        "updated_records": "Updated Records",
+        "added_records": "Added Records",
+        "download_merged": "📥 Download Merged Data",
+        "no_data": "No data available. Please upload files first.",
+        "error": "Error processing files. Please check format.",
     },
     "ru": {
-        "app_title": "Управление Данными Студентов",
-        "upload_instructions": "Загрузите несколько .xls/.xlsx файлов (разных лет). Ожидаемые столбцы: EDU_LEVEL, CIPHER, SPEC_RU, RU, STUD_ID, NAME_NATIVE, SURNAME_NATIVE, PATRONYMIC, BIRTH_DATE, CONTACT_PHONES, EMAIL",
-        "upload_button": "Загрузить файлы",
-        "process": "Обработать файлы",
-        "download_cleaned": "Скачать очищенный Excel",
-        "with_contacts": "Студенты с контактами",
-        "without_contacts": "Студенты без контактов",
+        "title": "🎓 Управление данными студентов",
+        "subtitle": "Очистка, анализ и управление записями студентов",
+        "language": "Язык",
+        "upload_clean": "📤 Загрузка и очистка данных",
+        "analysis": "📊 Панель анализа",
+        "merge": "🔄 Обновление и объединение данных",
+        "upload_files": "Загрузите Excel файлы (.xls, .xlsx)",
+        "drag_drop": "Перетащите файлы сюда или нажмите для выбора",
+        "processing": "Обработка данных...",
+        "success": "✅ Обработка завершена!",
         "total_students": "Всего студентов",
-        "students_with": "С контактами",
-        "students_without": "Без контактов",
-        "analysis": "Панель Анализа",
-        "filters": "Фильтры",
-        "year": "Год",
-        "faculty": "Факультет (SPEC_RU)",
-        "edu_level": "Уровень образования",
-        "chart_students_year": "Студенты по годам",
-        "chart_by_faculty": "Студенты по факультетам",
-        "chart_trend": "Динамика выпусков (по годам)",
-        "contact_completeness": "Наличие контактов",
-        "search_name": "Поиск по имени",
-        "download_filtered": "Скачать отфильтрованные данные",
-        "update_merge": "Обновить / Слить данные",
-        "upload_master": "(Опционально) Загрузите мастер-файл для обновления (или используйте 'Обработанный мастер' выше)",
-        "upload_updates": "Загрузить файл с обновлениями",
-        "merge_button": "Слить и обновить",
-        "merge_summary": "Итог слияния",
-        "updated": "Записей обновлено",
-        "added": "Новых записей добавлено",
-        "download_merged": "Скачать слитый файл",
-        "no_data": "Данные не загружены. Сначала загрузите файлы.",
-        "invalid_phone_example": "Телефон стандартизирован; нераспознаваемые оставлены пустыми.",
-        "processing_complete": "Обработка завершена.",
-    },
+        "with_contacts": "С контактами",
+        "without_contacts": "Без контактов",
+        "download_cleaned": "📥 Скачать очищенные данные",
+        "year_filter": "Фильтр по году",
+        "faculty_filter": "Фильтр по факультету",
+        "edu_level_filter": "Фильтр по уровню образования",
+        "all": "Все",
+        "search_placeholder": "Поиск по имени...",
+        "students_by_year": "Студенты по годам",
+        "students_by_faculty": "Студенты по факультетам",
+        "graduation_trend": "Динамика выпусков по годам",
+        "contact_completeness": "Полнота контактной информации",
+        "upload_old": "Загрузите старый набор данных",
+        "upload_new": "Загрузите новый набор данных",
+        "merge_data": "🔄 Объединить данные",
+        "updated_records": "Обновлено записей",
+        "added_records": "Добавлено записей",
+        "download_merged": "📥 Скачать объединенные данные",
+        "no_data": "Нет данных. Пожалуйста, загрузите файлы.",
+        "error": "Ошибка обработки файлов. Проверьте формат.",
+    }
 }
 
-# ---------- Helpers ----------
-def detect_year_from_filename(fname: str):
-    # try to find a 4-digit year like 2021,2022 etc
-    m = re.search(r"(20\d{2})", fname)
-    if m:
-        return int(m.group(1))
-    return None
-
-def normalize_phone(phone_raw: str):
-    """
-    Normalize phone numbers to +996XXXXXXXXX (Kyrgyzstan mobile expected 9 digits after code).
-    Handles inputs like:
-      0558640927 -> +996558640927
-      558640927  -> +996558640927
-      996558640927 -> +996558640927
-      +996558640927 -> +996558640927
-    If cannot parse cleanly, returns empty string.
-    """
-    if pd.isna(phone_raw):
-        return ""
-    s = str(phone_raw)
-    # remove spaces, parentheses, hyphens, plus signs except leading
-    digits = re.sub(r"[^\d+]", "", s)
-    # Remove leading plus for processing
-    digits = digits.lstrip('+')
-    # If it contains country code 996 at start
-    if digits.startswith("996") and len(digits) >= 12:
-        # digits after 996 should be 9
-        rest = digits[3:]
-        if len(rest) == 9:
-            return "+996" + rest
-        # if rest is 10 and starts with 0, drop leading 0
-        if len(rest) == 10 and rest.startswith("0"):
-            return "+996" + rest[1:]
-    # If length 9 -> assume national without leading zero
-    if len(digits) == 9:
-        return "+996" + digits
-    # If length 10 and starts with 0 -> drop 0
-    if len(digits) == 10 and digits.startswith("0"):
-        return "+996" + digits[1:]
-    # If length 12 and starts with 996
-    if len(digits) == 12 and digits.startswith("996"):
-        return "+" + digits
-    # If already formatted as +996... (rare here after strip)
-    if s.startswith("+996") and len(s) >= 13:
-        return s
-    # fallback: try to extract last 9 digits
-    last9 = re.sub(r"\D", "", s)[-9:]
-    if len(last9) == 9:
-        return "+996" + last9
-    return ""
+# Initialize session state
+if 'lang' not in st.session_state:
+    st.session_state.lang = 'en'
+if 'cleaned_data' not in st.session_state:
+    st.session_state.cleaned_data = None
+if 'merged_data' not in st.session_state:
+    st.session_state.merged_data = None
 
 
-def combine_uploaded_files(uploaded_files):
-    frames = []
-    years = []
-    for uploaded_file in uploaded_files:
+def t(key):
+    """Translation helper"""
+    return TRANSLATIONS[st.session_state.lang].get(key, key)
+
+
+def clean_phone_number(phone):
+    """Clean and standardize phone numbers to +996XXXXXXXXX format"""
+    if pd.isna(phone):
+        return None
+
+    phone = str(phone).strip()
+    # Remove all non-digit characters
+    digits = re.sub(r'\D', '', phone)
+
+    # Handle different formats
+    if len(digits) == 9:  # 558640927
+        return f"+996{digits}"
+    elif len(digits) == 10 and digits.startswith('0'):  # 0558640927
+        return f"+996{digits[1:]}"
+    elif len(digits) == 12 and digits.startswith('996'):  # 996558640927
+        return f"+{digits}"
+    elif len(digits) == 13 and digits.startswith('996'):  # Already correct
+        return f"+{digits}"
+
+    return phone  # Return original if format unclear
+
+
+def extract_year_from_filename(filename):
+    """Extract year from filename"""
+    match = re.search(r'20\d{2}', filename)
+    return int(match.group()) if match else datetime.now().year
+
+
+def process_uploaded_files(uploaded_files):
+    """Process and combine multiple Excel files"""
+    all_data = []
+
+    for file in uploaded_files:
         try:
-            df = pd.read_excel(uploaded_file)
-        except Exception:
-            # try engine fallback
-            df = pd.read_excel(uploaded_file, engine="xlrd")
-        fname = getattr(uploaded_file, "name", "")
-        year = detect_year_from_filename(fname) or None
-        if year is not None:
-            df["YEAR_SOURCE"] = year
-            years.append(year)
-        else:
-            df["YEAR_SOURCE"] = None
-        frames.append(df)
-    if not frames:
-        return pd.DataFrame()
-    combined = pd.concat(frames, ignore_index=True, sort=False)
-    # Ensure columns exist
-    expected_cols = ["EDU_LEVEL","CIPHER","SPEC_RU","RU","STUD_ID","NAME_NATIVE","SURNAME_NATIVE","PATRONYMIC","BIRTH_DATE","CONTACT_PHONES","EMAIL","YEAR_SOURCE"]
-    for c in expected_cols:
-        if c not in combined.columns:
-            combined[c] = pd.NA
-    # Standardize phone
-    combined["CONTACT_PHONES_STD"] = combined["CONTACT_PHONES"].apply(normalize_phone)
-    # Create boolean
-    combined["HAS_CONTACT"] = combined["CONTACT_PHONES_STD"].apply(lambda x: bool(str(x).strip()))
-    # Create a helper normalized name key
-    def key_name(r):
-        n = str(r.get("NAME_NATIVE","") or "").strip().lower()
-        s = str(r.get("SURNAME_NATIVE","") or "").strip().lower()
-        return (n + " " + s).strip()
-    combined["__NAME_KEY__"] = combined.apply(key_name, axis=1)
-    return combined
+            # Read Excel file
+            df = pd.read_excel(file)
 
-def to_excel_bytes(df_with: pd.DataFrame, df_without: pd.DataFrame):
+            # Extract year from filename
+            year = extract_year_from_filename(file.name)
+            df['YEAR'] = year
+
+            all_data.append(df)
+        except Exception as e:
+            st.error(f"Error processing {file.name}: {str(e)}")
+
+    if not all_data:
+        return None
+
+    # Combine all dataframes
+    combined_df = pd.concat(all_data, ignore_index=True)
+
+    # Clean phone numbers
+    if 'CONTACT_PHONES' in combined_df.columns:
+        combined_df['CONTACT_PHONES_CLEANED'] = combined_df['CONTACT_PHONES'].apply(clean_phone_number)
+
+    # Clean email
+    if 'EMAIL' in combined_df.columns:
+        combined_df['EMAIL'] = combined_df['EMAIL'].str.strip().str.lower()
+
+    return combined_df
+
+
+def split_by_contact(df):
+    """Split dataset into with/without contacts"""
+    if 'CONTACT_PHONES_CLEANED' not in df.columns:
+        return df, pd.DataFrame()
+
+    with_contacts = df[df['CONTACT_PHONES_CLEANED'].notna()].copy()
+    without_contacts = df[df['CONTACT_PHONES_CLEANED'].isna()].copy()
+
+    return with_contacts, without_contacts
+
+
+def create_excel_download(df_with, df_without):
+    """Create Excel file with two sheets"""
     output = BytesIO()
-    now = datetime.now().strftime("%Y%m%d_%H%M")
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df_with.to_excel(writer, sheet_name="with_contacts", index=False)
-        df_without.to_excel(writer, sheet_name="without_contacts", index=False)
-        writer.save()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_with.to_excel(writer, sheet_name='With Contacts', index=False)
+        df_without.to_excel(writer, sheet_name='Without Contacts', index=False)
+
     output.seek(0)
     return output
 
-def df_to_excel_bytes(df, sheet_name="sheet"):
-    out = BytesIO()
-    with pd.ExcelWriter(out, engine="openpyxl") as writer:
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-        writer.save()
-    out.seek(0)
-    return out
 
-# ---------- Sidebar: language & navigation ----------
-if "lang" not in st.session_state:
-    st.session_state.lang = "en"
-lang_choice = st.sidebar.selectbox("Language / Язык", options=["English", "Русский"])
-st.session_state.lang = "en" if lang_choice == "English" else "ru"
-T = LANG[st.session_state.lang]
+# Sidebar
+with st.sidebar:
+    st.markdown("### " + t("language"))
+    lang_choice = st.radio("", ["English", "Русский"],
+                           index=0 if st.session_state.lang == 'en' else 1,
+                           label_visibility="collapsed")
+    st.session_state.lang = 'en' if lang_choice == "English" else 'ru'
 
-st.sidebar.title(T["app_title"])
+    st.markdown("---")
+    st.markdown("### Navigation")
+    page = st.radio("", [t("upload_clean"), t("analysis"), t("merge")],
+                    label_visibility="collapsed")
 
-page = st.sidebar.radio("", options=[T["upload_button"], T["analysis"], T["update_merge"]])
+# Main title
+st.title(t("title"))
+st.markdown(f"*{t('subtitle')}*")
+st.markdown("---")
 
-# ---------- Main Title ----------
-st.markdown(f"<div class='title'>{T['app_title']}</div>", unsafe_allow_html=True)
-st.markdown(f"<div class='subtitle'>{T['upload_instructions']}</div>", unsafe_allow_html=True)
-st.write("---")
+# PAGE 1: Upload & Clean
+if page == t("upload_clean"):
+    st.header(t("upload_clean"))
 
-# ---------- Page: Upload & Clean ----------
-if page == T["upload_button"]:
-    uploaded = st.file_uploader(T["upload_instructions"], accept_multiple_files=True, type=["xls", "xlsx"])
-    if uploaded:
-        with st.spinner(T["process"] + "..."):
-            combined = combine_uploaded_files(uploaded)
-            # store master in session state for other pages
-            st.session_state.master = combined.copy()
-        st.success(T["processing_complete"])
-        # KPIs
-        total = len(combined)
-        with_cnt = combined["HAS_CONTACT"].sum()
-        without_cnt = total - with_cnt
-        col1, col2, col3 = st.columns([1,1,1])
-        col1.markdown(f"<div class='kpi'><h3>{T['total_students']}</h3><h2 style='margin:0'>{total}</h2></div>", unsafe_allow_html=True)
-        col2.markdown(f"<div class='kpi'><h3>{T['students_with']}</h3><h2 style='margin:0'>{with_cnt}</h2></div>", unsafe_allow_html=True)
-        col3.markdown(f"<div class='kpi'><h3>{T['students_without']}</h3><h2 style='margin:0'>{without_cnt}</h2></div>", unsafe_allow_html=True)
+    uploaded_files = st.file_uploader(
+        t("upload_files"),
+        type=['xls', 'xlsx'],
+        accept_multiple_files=True,
+        help=t("drag_drop")
+    )
 
-        # Show samples
-        st.write("Preview (first 15 rows):")
-        st.dataframe(combined.head(15))
+    if uploaded_files:
+        with st.spinner(t("processing")):
+            df = process_uploaded_files(uploaded_files)
 
-        # Split and download
-        df_with = combined[combined["HAS_CONTACT"]].copy()
-        df_without = combined[~combined["HAS_CONTACT"]].copy()
+            if df is not None:
+                st.session_state.cleaned_data = df
+                st.success(t("success"))
 
-        excel_bytes = to_excel_bytes(df_with, df_without)
-        nowtag = datetime.now().strftime("%Y%m%d")
-        st.download_button(label=T["download_cleaned"], data=excel_bytes, file_name=f"cleaned_students_{nowtag}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                # Split data
+                df_with, df_without = split_by_contact(df)
 
-        # show note about phone normalization
-        st.info(T["invalid_phone_example"])
+                # KPI Metrics
+                col1, col2, col3 = st.columns(3)
 
+                with col1:
+                    st.metric(t("total_students"), len(df))
+
+                with col2:
+                    st.metric(t("with_contacts"), len(df_with))
+
+                with col3:
+                    st.metric(t("without_contacts"), len(df_without))
+
+                # Preview data
+                st.subheader("Data Preview")
+                tab1, tab2 = st.tabs([t("with_contacts"), t("without_contacts")])
+
+                with tab1:
+                    st.dataframe(df_with.head(50), use_container_width=True)
+
+                with tab2:
+                    st.dataframe(df_without.head(50), use_container_width=True)
+
+                # Download button
+                excel_file = create_excel_download(df_with, df_without)
+                st.download_button(
+                    label=t("download_cleaned"),
+                    data=excel_file,
+                    file_name=f"cleaned_students_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+# PAGE 2: Analysis Dashboard
+elif page == t("analysis"):
+    st.header(t("analysis"))
+
+    if st.session_state.cleaned_data is None:
+        st.warning(t("no_data"))
     else:
-        st.info(T["no_data"])
+        df = st.session_state.cleaned_data
 
-# ---------- Page: Analysis ----------
-elif page == T["analysis"]:
-    if "master" not in st.session_state or st.session_state.master is None or st.session_state.master.empty:
-        st.info(T["no_data"])
-    else:
-        df = st.session_state.master.copy()
-        # Sidebar filters
-        st.sidebar.header(T["filters"])
-        years = sorted(df["YEAR_SOURCE"].dropna().unique().tolist())
-        years = [int(y) for y in years if pd.notna(y)]
-        year_sel = st.sidebar.multiselect(T["year"], options=years, default=years if years else [])
-        faculties = sorted(df["SPEC_RU"].dropna().unique().tolist())
-        fac_sel = st.sidebar.multiselect(T["faculty"], options=faculties, default=faculties if faculties else [])
-        edu_levels = sorted(df["EDU_LEVEL"].dropna().unique().tolist())
-        edu_sel = st.sidebar.multiselect(T["edu_level"], options=edu_levels, default=edu_levels if edu_levels else [])
+        # Filters
+        col1, col2, col3 = st.columns(3)
 
-        # apply filters
-        if year_sel:
-            df = df[df["YEAR_SOURCE"].isin(year_sel)]
-        if fac_sel:
-            df = df[df["SPEC_RU"].isin(fac_sel)]
-        if edu_sel:
-            df = df[df["EDU_LEVEL"].isin(edu_sel)]
+        with col1:
+            years = [t("all")] + sorted(df['YEAR'].unique().tolist())
+            selected_year = st.selectbox(t("year_filter"), years)
 
-        # search
-        search = st.sidebar.text_input(T["search_name"])
-        if search:
-            search_l = search.strip().lower()
-            df = df[df["__NAME_KEY__"].str.contains(search_l, na=False)]
+        with col2:
+            faculties = [t("all")] + sorted(df['SPEC_RU'].dropna().unique().tolist()) if 'SPEC_RU' in df.columns else [
+                t("all")]
+            selected_faculty = st.selectbox(t("faculty_filter"), faculties)
+
+        with col3:
+            edu_levels = [t("all")] + sorted(
+                df['EDU_LEVEL'].dropna().unique().tolist()) if 'EDU_LEVEL' in df.columns else [t("all")]
+            selected_level = st.selectbox(t("edu_level_filter"), edu_levels)
+
+        # Apply filters
+        filtered_df = df.copy()
+        if selected_year != t("all"):
+            filtered_df = filtered_df[filtered_df['YEAR'] == selected_year]
+        if selected_faculty != t("all"):
+            filtered_df = filtered_df[filtered_df['SPEC_RU'] == selected_faculty]
+        if selected_level != t("all"):
+            filtered_df = filtered_df[filtered_df['EDU_LEVEL'] == selected_level]
+
+        # Search
+        search_term = st.text_input(t("search_placeholder"))
+        if search_term:
+            mask = filtered_df.apply(lambda row: search_term.lower() in str(row).lower(), axis=1)
+            filtered_df = filtered_df[mask]
 
         # Charts
-        col1, col2 = st.columns((2,1))
-        # Students by Year
-        if not df.empty:
-            by_year = df.groupby("YEAR_SOURCE").size().reset_index(name="count").sort_values("YEAR_SOURCE")
-            fig1 = px.bar(by_year, x="YEAR_SOURCE", y="count", title=T["chart_students_year"], labels={"YEAR_SOURCE": T["year"], "count":"Count"})
-            col1.plotly_chart(fig1, use_container_width=True)
+        col1, col2 = st.columns(2)
 
-            # Students by Faculty (horizontal)
-            by_fac = df.groupby("SPEC_RU").size().reset_index(name="count").sort_values("count", ascending=True)
-            fig2 = px.bar(by_fac, x="count", y="SPEC_RU", orientation="h", title=T["chart_by_faculty"], labels={"count":"Count", "SPEC_RU":T["faculty"]})
-            col1.plotly_chart(fig2, use_container_width=True)
+        with col1:
+            # Students by Year
+            year_counts = filtered_df['YEAR'].value_counts().sort_index()
+            fig1 = px.bar(
+                x=year_counts.index,
+                y=year_counts.values,
+                labels={'x': 'Year', 'y': 'Students'},
+                title=t("students_by_year"),
+                color_discrete_sequence=['#5dade2']
+            )
+            fig1.update_layout(showlegend=False)
+            st.plotly_chart(fig1, use_container_width=True)
 
-            # Trend line
-            trend = df.groupby("YEAR_SOURCE").size().reset_index(name="count").sort_values("YEAR_SOURCE")
-            fig3 = px.line(trend, x="YEAR_SOURCE", y="count", markers=True, title=T["chart_trend"], labels={"YEAR_SOURCE":T["year"], "count":"Count"})
-            col2.plotly_chart(fig3, use_container_width=True)
+        with col2:
+            # Contact Completeness
+            has_contact = filtered_df['CONTACT_PHONES_CLEANED'].notna().sum()
+            no_contact = filtered_df['CONTACT_PHONES_CLEANED'].isna().sum()
 
-            # Contact completeness
-            comp = pd.DataFrame({
-                "has_contact": ["Has contact", "No contact"],
-                "count": [int(df["HAS_CONTACT"].sum()), int((~df["HAS_CONTACT"]).sum())]
-            })
-            fig4 = px.pie(comp, values="count", names="has_contact", title=T["contact_completeness"])
-            col2.plotly_chart(fig4, use_container_width=True)
+            fig2 = go.Figure(data=[go.Pie(
+                labels=[t("with_contacts"), t("without_contacts")],
+                values=[has_contact, no_contact],
+                marker_colors=['#52be80', '#ec7063']
+            )])
+            fig2.update_layout(title=t("contact_completeness"))
+            st.plotly_chart(fig2, use_container_width=True)
 
-        else:
-            st.write("No rows after filters.")
+        # Students by Faculty
+        if 'SPEC_RU' in filtered_df.columns:
+            faculty_counts = filtered_df['SPEC_RU'].value_counts().head(10)
+            fig3 = px.bar(
+                y=faculty_counts.index,
+                x=faculty_counts.values,
+                orientation='h',
+                labels={'x': 'Students', 'y': 'Faculty'},
+                title=t("students_by_faculty"),
+                color_discrete_sequence=['#f39c12']
+            )
+            st.plotly_chart(fig3, use_container_width=True)
 
-        # Data table and download filtered
-        st.write("Filtered data preview:")
-        st.dataframe(df.head(100))
-        xlsx = df_to_excel_bytes(df, sheet_name="filtered")
-        st.download_button(label=T["download_filtered"], data=xlsx, file_name=f"filtered_students_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        # Graduation Trend
+        trend_data = df.groupby('YEAR').size().reset_index(name='count')
+        fig4 = px.line(
+            trend_data,
+            x='YEAR',
+            y='count',
+            markers=True,
+            title=t("graduation_trend"),
+            labels={'YEAR': 'Year', 'count': 'Students'}
+        )
+        st.plotly_chart(fig4, use_container_width=True)
 
-# ---------- Page: Update / Merge ----------
-elif page == T["update_merge"]:
-    st.write("### " + T["update_merge"])
-    st.write(T["upload_master"])
-    master_file = st.file_uploader("Master file (optional)", type=["xls","xlsx"], key="master_update")
-    st.write(T["upload_updates"])
-    updates_file = st.file_uploader("", type=["xls","xlsx"], key="updates_file")
+        # Filtered data preview
+        st.subheader("Filtered Data")
+        st.dataframe(filtered_df, use_container_width=True)
 
-    use_session_master = st.checkbox("Use processed master from this session (if exists)", value=True)
+        # Download filtered data
+        csv = filtered_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Filtered Data",
+            data=csv,
+            file_name=f"filtered_data_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
 
-    if st.button(T["merge_button"]):
-        # determine base master
-        if use_session_master and "master" in st.session_state and st.session_state.master is not None and not st.session_state.master.empty:
-            base = st.session_state.master.copy()
-        elif master_file:
-            base = pd.read_excel(master_file)
-            # add standard columns if missing
-            if "__NAME_KEY__" not in base.columns:
-                base["__NAME_KEY__"] = (base.get("NAME_NATIVE","").fillna("").astype(str).str.strip().str.lower() + " " + base.get("SURNAME_NATIVE","").fillna("").astype(str).str.strip().str.lower()).str.strip()
-            if "CONTACT_PHONES_STD" not in base.columns and "CONTACT_PHONES" in base.columns:
-                base["CONTACT_PHONES_STD"] = base["CONTACT_PHONES"].apply(normalize_phone)
-                base["HAS_CONTACT"] = base["CONTACT_PHONES_STD"].apply(lambda x: bool(str(x).strip()))
-        else:
-            st.warning(T["no_data"])
-            st.stop()
+# PAGE 3: Update & Merge
+elif page == t("merge"):
+    st.header(t("merge"))
 
-        if not updates_file:
-            st.warning(T["upload_updates"])
-            st.stop()
-        updates = pd.read_excel(updates_file)
-        # prepare keys
-        updates["__NAME_KEY__"] = (updates.get("NAME_NATIVE","").fillna("").astype(str).str.strip().str.lower() + " " + updates.get("SURNAME_NATIVE","").fillna("").astype(str).str.strip().str.lower()).str.strip()
+    col1, col2 = st.columns(2)
 
-        # We'll do an inner update on columns present in updates (excluding name keys)
-        merge_cols = [c for c in updates.columns if c not in ["__NAME_KEY__"]]
-        updated_count = 0
-        added_count = 0
+    with col1:
+        old_file = st.file_uploader(t("upload_old"), type=['xls', 'xlsx'], key="old")
 
-        # create index on base by name key for quick lookup
-        base_index = {k: i for i, k in enumerate(base["__NAME_KEY__"].fillna("").astype(str))}
-        base_records = base.copy()
+    with col2:
+        new_file = st.file_uploader(t("upload_new"), type=['xls', 'xlsx'], key="new")
 
-        for idx, row in updates.iterrows():
-            key = row["__NAME_KEY__"]
-            if key in base_index and key != "":
-                i = base_index[key]
-                # update non-null values from updates into base
-                updated = False
-                for c in merge_cols:
-                    val = row.get(c, pd.NA)
-                    if pd.notna(val) and str(val).strip() != "":
-                        base_records.at[i, c] = val
-                        updated = True
-                if updated:
-                    updated_count += 1
-            else:
-                # add as new record
-                added_count += 1
-                base_records = pd.concat([base_records, pd.DataFrame([row.to_dict()])], ignore_index=True)
+    if old_file and new_file:
+        if st.button(t("merge_data"), use_container_width=True):
+            with st.spinner(t("processing")):
+                try:
+                    # Read files
+                    df_old = pd.read_excel(old_file)
+                    df_new = pd.read_excel(new_file)
 
-        # Recompute normalized phone for safety
-        if "CONTACT_PHONES" in base_records.columns:
-            base_records["CONTACT_PHONES_STD"] = base_records["CONTACT_PHONES"].apply(normalize_phone)
-            base_records["HAS_CONTACT"] = base_records["CONTACT_PHONES_STD"].apply(lambda x: bool(str(x).strip()))
-        # ensure name key present
-        if "__NAME_KEY__" not in base_records.columns:
-            base_records["__NAME_KEY__"] = (base_records.get("NAME_NATIVE","").fillna("").astype(str).str.strip().str.lower() + " " + base_records.get("SURNAME_NATIVE","").fillna("").astype(str).str.strip().str.lower()).str.strip()
+                    # Create matching key
+                    df_old['match_key'] = (df_old['NAME_NATIVE'].astype(str) + '_' +
+                                           df_old['SURNAME_NATIVE'].astype(str)).str.lower()
+                    df_new['match_key'] = (df_new['NAME_NATIVE'].astype(str) + '_' +
+                                           df_new['SURNAME_NATIVE'].astype(str)).str.lower()
 
-        st.success(T["processing_complete"])
-        st.write("### " + T["merge_summary"])
-        st.write(f"- {T['updated']}: {updated_count}")
-        st.write(f"- {T['added']}: {added_count}")
+                    # Merge data
+                    merged = df_old.set_index('match_key')
+                    updated_count = 0
+                    added_count = 0
 
-        # show few rows
-        st.write("Preview of merged dataset (first 50 rows):")
-        st.dataframe(base_records.head(50))
+                    for idx, row in df_new.iterrows():
+                        key = row['match_key']
 
-        # store as new master optionally
-        st.session_state.master = base_records.copy()
+                        if key in merged.index:
+                            # Update existing record
+                            for col in ['EMAIL', 'CONTACT_PHONES']:
+                                if col in df_new.columns and pd.notna(row[col]):
+                                    merged.at[key, col] = row[col]
+                            updated_count += 1
+                        else:
+                            # Add new record
+                            merged = pd.concat([merged, pd.DataFrame([row]).set_index('match_key')])
+                            added_count += 1
 
-        # download merged
-        merged_bytes = df_to_excel_bytes(base_records, sheet_name="merged")
-        st.download_button(label=T["download_merged"], data=merged_bytes, file_name=f"merged_students_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    merged = merged.reset_index(drop=True)
+                    merged = merged.drop('match_key', axis=1, errors='ignore')
 
-# ---------- Footer ----------
-st.write("---")
-st.caption("Built for data cleaning, standardization, analysis, and merging. Designed with a calm modern theme.")
+                    st.session_state.merged_data = merged
+
+                    # Show metrics
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric(t("total_students"), len(merged))
+                    with col2:
+                        st.metric(t("updated_records"), updated_count)
+                    with col3:
+                        st.metric(t("added_records"), added_count)
+
+                    st.success(t("success"))
+
+                    # Preview
+                    st.dataframe(merged.head(50), use_container_width=True)
+
+                    # Download
+                    output = BytesIO()
+                    merged.to_excel(output, index=False, engine='openpyxl')
+                    output.seek(0)
+
+                    st.download_button(
+                        label=t("download_merged"),
+                        data=output,
+                        file_name=f"merged_data_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+
+                except Exception as e:
+                    st.error(f"{t('error')}: {str(e)}")
+
+# Footer
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #7f8c8d;'>Made with ❤️ for Student Data Management</div>",
+    unsafe_allow_html=True
+)
