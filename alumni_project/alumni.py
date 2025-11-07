@@ -378,54 +378,62 @@ elif page == t("analysis"):
 
         with col1:
             # Students by Year
-            year_counts = filtered_df['YEAR'].value_counts().sort_index()
-            fig1 = px.bar(
-                x=year_counts.index,
-                y=year_counts.values,
-                labels={'x': 'Year', 'y': 'Students'},
-                title=t("students_by_year"),
-                color_discrete_sequence=['#5dade2']
-            )
-            fig1.update_layout(showlegend=False)
-            st.plotly_chart(fig1, use_container_width=True)
+            if len(filtered_df) > 0:
+                year_counts = filtered_df['YEAR'].value_counts().sort_index()
+                fig1 = px.bar(
+                    x=year_counts.index.tolist(),
+                    y=year_counts.values.tolist(),
+                    labels={'x': 'Year', 'y': 'Students'},
+                    title=t("students_by_year"),
+                    color_discrete_sequence=['#5dade2']
+                )
+                fig1.update_layout(showlegend=False)
+                st.plotly_chart(fig1, use_container_width=True)
+            else:
+                st.info("No data available for the selected filters")
 
         with col2:
             # Contact Completeness
-            has_contact = filtered_df['CONTACT_PHONES_CLEANED'].notna().sum()
-            no_contact = filtered_df['CONTACT_PHONES_CLEANED'].isna().sum()
+            if len(filtered_df) > 0:
+                has_contact = filtered_df['CONTACT_PHONES_CLEANED'].notna().sum()
+                no_contact = filtered_df['CONTACT_PHONES_CLEANED'].isna().sum()
 
-            fig2 = go.Figure(data=[go.Pie(
-                labels=[t("with_contacts"), t("without_contacts")],
-                values=[has_contact, no_contact],
-                marker_colors=['#52be80', '#ec7063']
-            )])
-            fig2.update_layout(title=t("contact_completeness"))
-            st.plotly_chart(fig2, use_container_width=True)
+                fig2 = go.Figure(data=[go.Pie(
+                    labels=[t("with_contacts"), t("without_contacts")],
+                    values=[has_contact, no_contact],
+                    marker_colors=['#52be80', '#ec7063']
+                )])
+                fig2.update_layout(title=t("contact_completeness"))
+                st.plotly_chart(fig2, use_container_width=True)
+            else:
+                st.info("No data available for the selected filters")
 
         # Students by Faculty
-        if 'SPEC_RU' in filtered_df.columns:
+        if 'SPEC_RU' in filtered_df.columns and len(filtered_df) > 0:
             faculty_counts = filtered_df['SPEC_RU'].value_counts().head(10)
-            fig3 = px.bar(
-                y=faculty_counts.index,
-                x=faculty_counts.values,
-                orientation='h',
-                labels={'x': 'Students', 'y': 'Faculty'},
-                title=t("students_by_faculty"),
-                color_discrete_sequence=['#f39c12']
-            )
-            st.plotly_chart(fig3, use_container_width=True)
+            if len(faculty_counts) > 0:
+                fig3 = px.bar(
+                    y=faculty_counts.index.tolist(),
+                    x=faculty_counts.values.tolist(),
+                    orientation='h',
+                    labels={'x': 'Students', 'y': 'Faculty'},
+                    title=t("students_by_faculty"),
+                    color_discrete_sequence=['#f39c12']
+                )
+                st.plotly_chart(fig3, use_container_width=True)
 
         # Graduation Trend
-        trend_data = df.groupby('YEAR').size().reset_index(name='count')
-        fig4 = px.line(
-            trend_data,
-            x='YEAR',
-            y='count',
-            markers=True,
-            title=t("graduation_trend"),
-            labels={'YEAR': 'Year', 'count': 'Students'}
-        )
-        st.plotly_chart(fig4, use_container_width=True)
+        if len(df) > 0:
+            trend_data = df.groupby('YEAR').size().reset_index(name='count')
+            fig4 = px.line(
+                trend_data,
+                x='YEAR',
+                y='count',
+                markers=True,
+                title=t("graduation_trend"),
+                labels={'YEAR': 'Year', 'count': 'Students'}
+            )
+            st.plotly_chart(fig4, use_container_width=True)
 
         # Filtered data preview
         st.subheader("Filtered Data")
@@ -457,14 +465,39 @@ elif page == t("merge"):
             with st.spinner(t("processing")):
                 try:
                     # Read files
-                    df_old = pd.read_excel(old_file)
-                    df_new = pd.read_excel(new_file)
+                    df_old = pd.read_excel(old_file, engine=None)
+                    df_new = pd.read_excel(new_file, engine=None)
+
+                    # Check for required columns
+                    required_cols = ['NAME_NATIVE', 'SURNAME_NATIVE']
+                    missing_old = [col for col in required_cols if col not in df_old.columns]
+                    missing_new = [col for col in required_cols if col not in df_new.columns]
+
+                    if missing_old or missing_new:
+                        error_msg = ""
+                        if st.session_state.lang == 'en':
+                            error_msg = "❌ **Error: Missing required columns**\n\n"
+                            if missing_old:
+                                error_msg += f"Old file is missing: {', '.join(missing_old)}\n"
+                            if missing_new:
+                                error_msg += f"New file is missing: {', '.join(missing_new)}\n"
+                            error_msg += "\n**Required columns:** NAME_NATIVE, SURNAME_NATIVE\n\nPlease check your files and try again."
+                        else:
+                            error_msg = "❌ **Ошибка: Отсутствуют обязательные столбцы**\n\n"
+                            if missing_old:
+                                error_msg += f"Старый файл не содержит: {', '.join(missing_old)}\n"
+                            if missing_new:
+                                error_msg += f"Новый файл не содержит: {', '.join(missing_new)}\n"
+                            error_msg += "\n**Обязательные столбцы:** NAME_NATIVE, SURNAME_NATIVE\n\nПожалуйста, проверьте файлы и попробуйте снова."
+
+                        st.error(error_msg)
+                        st.stop()
 
                     # Create matching key
                     df_old['match_key'] = (df_old['NAME_NATIVE'].astype(str) + '_' +
-                                           df_old['SURNAME_NATIVE'].astype(str)).str.lower()
+                                           df_old['SURNAME_NATIVE'].astype(str)).str.lower().str.strip()
                     df_new['match_key'] = (df_new['NAME_NATIVE'].astype(str) + '_' +
-                                           df_new['SURNAME_NATIVE'].astype(str)).str.lower()
+                                           df_new['SURNAME_NATIVE'].astype(str)).str.lower().str.strip()
 
                     # Merge data
                     merged = df_old.set_index('match_key')
@@ -517,7 +550,12 @@ elif page == t("merge"):
                     )
 
                 except Exception as e:
-                    st.error(f"{t('error')}: {str(e)}")
+                    if st.session_state.lang == 'en':
+                        st.error(
+                            f"❌ **Error processing files**\n\n{str(e)}\n\nPlease check that:\n- Files are in correct Excel format (.xls or .xlsx)\n- Files contain NAME_NATIVE and SURNAME_NATIVE columns\n- Data is properly formatted")
+                    else:
+                        st.error(
+                            f"❌ **Ошибка обработки файлов**\n\n{str(e)}\n\nПожалуйста, проверьте что:\n- Файлы в правильном формате Excel (.xls или .xlsx)\n- Файлы содержат столбцы NAME_NATIVE и SURNAME_NATIVE\n- Данные правильно отформатированы")
 
 # Footer
 st.markdown("---")
